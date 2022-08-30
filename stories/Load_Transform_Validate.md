@@ -1,0 +1,3 @@
+These three steps (outlined here: https://docs.google.com/presentation/d/1iV_RWk37NtC5cCjCrL8UJdJwlpQIiL-Gbr6jXoYjMoI/edit#slide=id.gfcdcaee185_0_1) may be separate processes in future Airflow implementations, but for this event we are starting with our data already loaded, transformed, and ready to go.
+
+Loading has been done using Fivetran (we might recommend using open source Airbyte for future projects). Transformation with DBT, which also includes the ability to validate as models are created.
