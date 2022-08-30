@@ -14,7 +14,14 @@ This repository exists initially to facilitate an event, SiloBuster! 2022, but l
 Questions are valuable outputs. Questions should be documented. I.e. What do we know we don’ t know?
 6. Although database architecture is based on HSDS, we are modeling and storing complex relationships that go beyond the base specification. Extend the tables and fields where necessary, but if at all possible, _do not change the spec_.
 
-## Backstory.
+## Etiquette.
+Because this is a relatively small event, we are running everything out of a single Github repo. Please observe the following to help prevent merge conflicts etc:
+
+1. Be clear about which code subdirectory you are working on, and only push code to that directory.
+2. If you have a collaborator in the same directory, self organize and coordinate merges as you see fit.
+3. Only event facilitors will update and push changes outside the code repository.
+
+## Backstory and goals of this event.
 
 Enterprise organizations like non-profit call centers, government agencies, and other CBOs are seeing the benefit of collaborating on shared resource directories. Mass duplication of data between systems is a waste for everyone.
 
@@ -32,7 +39,7 @@ The goal of this initiative is to carry on where ServiceNet left off, working cl
 
 3. Simply presenting stakeholders with thousands of potential duplicates creates _more_ work for them, and lessens the value of collaboration. The real value of this software would be identifing truth among data and help merge duplicates efficiently.
 
-### A couple more of technical lessons.
+### A couple more technical lessons.
 
 1. ServiceNet primarily utilized API integrations, which are a lot of work for stakeholders to integrate with on their end. While API integration will eventually be a part of this project, we are staring with bulk import orchestration using Airflow + connectors (Fivetran, Airbyte, etc). This is, again, very flexible, and gives participating members more flexibility to easily share data from different formats and using different methods.
 
