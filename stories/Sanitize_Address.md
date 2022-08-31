@@ -1,25 +1,26 @@
-# project_name SOW
-
+# Sanitize Addresses
 
 ## Assigned to:
 - github_user
 
 ## Description
-Describe the problem being solved. Provide context for how it will fit into the larger project. Establish purpose.
+Standardizing addresses will help increase matching fidelity in later steps. We should be able to use the free USPS validation API for this.
 
 ## Requirements
 
 ### Objectives
-Make a bullet list of the things that the code must do.
-- 
+
+- Validate addresses using the free USPS API.
+- Fix any errors that come back.
+- Flag addresses that are inconclusive.
 
 ### Constraints
-Make a list of the limitations/things the code can _not_ do.
-- 
+
+- Avoid _changing_ provided addresses to a different location. An address may be so poorly formated that it gets mistaken for a different location altogether. This may be unavoidable, but keep it in mind.
 
 ## Resources
 Insert all the materials needed to complete this code.
-- name (url)
+- Domestic USPS address validator (https://www.usps.com/business/web-tools-apis/#api)
 
 ## Documentation Protocol
 First, include a readme that describes what your code does and explains difficult bits.

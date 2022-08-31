@@ -35,7 +35,7 @@ First, include a readme that describes what your code does and explains difficul
 
 Second, use descriptive variables and method names so that the code is readable and obvious.
 
-Third, comment each function or method along with inputs and returns, and use other inline comments to make particularly opaque or unavoidably clever more code clear.
+Third, comment each function or method along with inputs and returns, and use other inline comments to make particularly opaque or unavoidably clever code clear.
 
 A story is absolutely __not__ complete until time has been spent at the end revewing, updating, and tidying up documentation.
 

@@ -1,17 +1,18 @@
-# project_name SOW
-
+# Sanitize URLs
 
 ## Assigned to:
 - github_user
 
 ## Description
-Describe the problem being solved. Provide context for how it will fit into the larger project. Establish purpose.
+This is a small but tricky story to sanitize and validate URLs.
 
 ## Requirements
 
 ### Objectives
-Make a bullet list of the things that the code must do.
-- 
+
+- If the provided value is not a valid URL, see if the value is a string and _contains_ a valid URL.
+- Encodings must be correct
+- Final stored values must include the protocol (id, "https://")
 
 ### Constraints
 Make a list of the limitations/things the code can _not_ do.
@@ -19,7 +20,9 @@ Make a list of the limitations/things the code can _not_ do.
 
 ## Resources
 Insert all the materials needed to complete this code.
-- name (url)
+- URL Specification (https://www.w3.org/Addressing/URL/url-spec.txt)
+- Possible headstart for validation in JS (https://gist.github.com/dperini/729294)
+- Implements the above in Python (https://miguendes.me/how-to-check-if-a-string-is-a-valid-url-in-python)
 
 ## Documentation Protocol
 First, include a readme that describes what your code does and explains difficult bits.
