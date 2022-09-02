@@ -1,0 +1,71 @@
+id,location_id,attention,address_1,city,region,state_province,postal_code,country
+852,852,,5200 Turkington Rd,Acme,Whatcom,WA,98220,US
+901,901,,"4152 Meridian St,Suite 105",Bellingham,Whatcom,WA,98226,US
+906,906,,"1210 Bay St,Suite,#102",Bellingham,Whatcom,WA,98225,US
+920,920,,500 C St,Blaine,Whatcom,WA,98230,US
+965,965,,PO Box 30943,Bellingham,Whatcom,WA,98228,US
+970,970,,3773 E McLeod Rd,Bellingham,Whatcom,WA,98226,US
+1059,1059,,2700 Bill McDonald Pkwy,Bellingham,Whatcom,WA,98225,US
+1068,1068,,3326 E Badger Rd,Everson,Whatcom,WA,98247,US
+1122,1122,,1500 N State St,Bellingham,Whatcom,WA,98225,US
+1125,1125,,4460 Bay Rd,Blaine,Whatcom,WA,98230,US
+1163,1163,,205 S British Columbia Ave,Lynden,Whatcom,WA,98264,US
+1182,1182,,1207 Ellsworth St,Bellingham,Whatcom,WA,98225,US
+1226,1226,,"East Whatcom Regional Resource Center,8255 Kendal Road",Maple Falls,Whatcom,WA,98266,US
+1242,1242,,162 W Laurel Rd,Bellingham,Whatcom,WA,98226,US
+1244,1244,,5060 Sand Rd,Bellingham,Whatcom,WA,98226,US
+1255,1255,,7547 Kendall Rd,Maple Falls,Whatcom,WA,98266,US
+1361,1361,,800 E Chestnut LL Suite 2,Bellingham,Whatcom,WA,98227,US
+1412,1412,,"Early Learning Center,5275 NW Dr,#26",Ferndale,Whatcom,WA,98248,US
+1421,1421,,204 N Washington,Everson,Whatcom,WA,98247,US
+1427,1427,,4173 Meridian St,Bellingham,Whatcom,WA,98226,US
+1461,1461,,1111 Cornwall Avenue,Bellingham,Whatcom,WA,98225,US
+1507,1507,,"2950 Newmarket St,Suite 101-124",Bellingham,Whatcom,WA,98226,US
+1525,1525,,1701 Gladstone Street,Bellingham,Whatcom,WA,98229,US
+1659,1659,,3424 Meridian St,Bellingham,Whatcom,WA,98225,US
+1660,1660,,1504 Larrabee Ave,Bellingham,Whatcom,WA,98225,US
+1707,1707,,"600 Lakeway Dr,Suite 100",Bellingham,Whatcom,WA,98225,US
+1803,1803,,"316 E McLeod Rd,Suite 102",Bellingham,Whatcom,WA,98226,US
+1810,1810,,1480 Gulf Rd,Point Roberts,Whatcom,WA,98281,US
+1882,1882,,210 Central Ave,Bellingham,Whatcom,WA,98227,US
+1908,1908,,5694 2nd Ave,Ferndale,Whatcom,WA,98248,US
+1910,1910,,3400 Hollywood Ave,Bellingham,Whatcom,WA,98225,US
+1951,1951,,3028 Lindbergh Ave,Bellingham,Whatcom,WA,98225,US
+1957,1957,,2117 Walnut St,Bellingham,Whatcom,WA,98225,US
+2010,2010,,207 Kentucky St,Bellingham,Whatcom,WA,98226,US
+2108,2108,,2592 Kwina Rd,Bellingham,Whatcom,WA,98226,US
+2113,2113,,2602 McLeod Rd,Bellingham,Whatcom,WA,98225,US
+2125,2125,,1671 Main St,Ferndale,Whatcom,WA,98248,US
+2136,2136,,2510 Sulwhanon Dr,Everson,Whatcom,WA,98247,US
+2142,2142,,1824 Ellis St,Bellingham,Whatcom,WA,98225,US
+2170,2170,,"4201 Meridian St,Suite",Bellingham,Whatcom,WA,98226,US
+2279,2279,,"1111 Cornwall Ave,Suite C",Bellingham,Whatcom,WA,98225,US
+2311,2311,,1110 14th St,Bellingham,Whatcom,WA,98225,US
+2419,2418,,2912 Northwest Ave,Bellingham,Whatcom,WA,98225,US
+2425,2424,,2602 McLeod Rd,Bellingham,Whatcom,WA,98225,US
+2472,2471,,"1133 Railroad Ave,# 100",Bellingham,Whatcom,WA,98225,US
+2496,2495,,3645 E McLeod Rd,Bellingham,Whatcom,WA,98226,US
+2505,2504,,6884 Hannegan Road,Everson,Whatcom,WA,98247,US
+2507,2506,,1764 Iowa St,Bellingham,Whatcom,WA,98229,US
+2544,2543,,"6046 Portal Way,Unit,# 201, Building # 101",Ferndale,Whatcom,WA,98248,US
+2552,2551,,4455 Cordata Pkwy,Bellingham,Whatcom,WA,98226,US
+2570,2569,,3350 Airport Drive,Bellingham,Whatcom,WA,98226,US
+2645,2644,,"1111 Cornwall Ave,Ste 200",Bellingham,Whatcom,WA,98225,US
+2676,2675,,2602 McLeod Rd,Bellingham,Whatcom,WA,98225,US
+2771,2770,,1986 Main St,Lyden,Whatcom,WA,98264,US
+2772,2771,,"205 Cherry St,5534 2nd Ave",Ferndale,Whatcom,WA,98248,US
+2838,2837,,1530 Ellis St,Bellingham,Whatcom,WA,98225,US
+2948,2947,,8251 Kendall Rd,Maple Falls,Whatcom,WA,98266,US
+2996,2995,,"114 W Magnolia St,Suite 106",Bellingham,Whatcom,WA,98225,US
+3128,3127,,"1231 N Garden St,#200",Bellingham,Whatcom,WA,98225,US
+3215,3214,,2030 Benson Rd,Point Roberts,Whatcom,WA,98281,US
+3216,3215,,6060 Portal Way,Ferndale,Whatcom,WA,98248,US
+3217,3216,,"1616 Cornwall Ave,Ste. 205",Bellingham,Whatcom,WA,98225,US
+3218,3217,,220 Unity St,Bellingham,Whatcom,WA,98225,US
+3287,3272,,1752 Iowa St,Bellingham,Whatcom,WA,98229,US
+3302,3287,,1130 N State St,Bellingham,Whatcom,WA,98225,US
+3307,3292,,"1221 Fraser St,Suite E-1",Bellingham,Whatcom,WA,98229,US
+3308,3293,,"6044 Portal Way,#103",Ferndale,Whatcom,WA,98248,US
+3372,3357,,3600 Meridian St,Bellingham,Whatcom,WA,98225,US
+3378,3363,,2694 Kwina Rd,Bellingham,Whatcom,WA,98226,US
+3400,3385,,"2505 Sulwhanon Drive,Modular Building A",Everson,Whatcom,WA,98247,US
