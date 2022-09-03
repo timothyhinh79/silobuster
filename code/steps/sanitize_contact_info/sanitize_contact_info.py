@@ -13,13 +13,14 @@ from collections import OrderedDict
 import phonenumbers
 from email_validator import validate_email
 import re
+import pprint
 
 
 this_module = sys.modules[__name__]
 
 def main():
     argparser = argparse.ArgumentParser(description=this_module.__doc__)
-    argparser.add_argument('--source-db', type=str,
+    argparser.add_argument('--source-db', type=str, required=True,
         help="e.g. 'postgresql+psycopg2://foo:bar@example.com:42/defaultdb'")
     argparser.add_argument('--dest-db', type=str, default=None)
     argparser.add_argument('--source-dest-mapping', type=str,
@@ -81,7 +82,7 @@ def main():
         dest_conn = dest_db.connect()
         
     for s2d in args.source_dest_mapping:
-        logger.info(f'Mapping {s2d}')
+        logger.info(f'Mapping \n{s2d}')
         
         if not len(s2d.key):
             raise Exception(f"keys not defined for table {s2d.source_table}") 
@@ -99,7 +100,7 @@ def main():
                     limit=args.batch_row_size,
                     offset=offset
                 ))
-            for result in src_conn.execute(
+            results = src_conn.execute(
                 f'''
                     select
                         {s2d.source_column}, {key_select} 
@@ -109,7 +110,12 @@ def main():
                     limit {args.batch_row_size}
                     offset {offset}
                 '''
-            ).fetchall():
+            ).fetchall()
+            
+            if not len(results):
+                break
+            
+            for result in results:
                 src = result[0]
                 if not src:
                     continue
@@ -119,20 +125,20 @@ def main():
                 if s2d.kind == InfoKind.phone:
                     try:
                         sanitized = phonenumbers.format_number(phonenumbers.parse(stripped_src, 'US'), phonenumbers.PhoneNumberFormat.NATIONAL).replace('-', ' ')
-                    except:
+                    except Exception as e:
                         logger.error(
                             f"Unable to parse or find phone number in text '{src}' on table {s2d.source_table}.{s2d.source_column} with key (" +
                                 ', '.join( [f'{col}={val}' for col, val, in zip(s2d.key, key_vals) ] ) + 
-                            ')')
+                            ')  exception: {e}')
                     
                 elif s2d.kind == InfoKind.email:
                     try:
                         sanitized = validate_email(stripped_src, check_deliverability=False).email
-                    except:
+                    except Exception as e:
                         logger.error(
                             f"Unable to parse or find email in text '{src}' on table {s2d.source_table}.{s2d.source_column} with key (" +
                                 ', '.join( [f'{col}={val}' for col, val, in zip(s2d.key, key_vals) ] ) + 
-                            ')')
+                            ')  exception: {e}')
                         
                 else:
                     logger.critical(f"Unknown kind={s2d.kind}")
@@ -172,6 +178,8 @@ class Src2Dest(object):
         self.source_column = source_column
         self.dest_table = dest_table
         self.dest_column = dest_column
+    def __str__(self):
+        return 'Src2Dest(\n  ' + pprint.pformat(self.__dict__) +')'
         
 def positive_int(value):
     ivalue = int(value)
