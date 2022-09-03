@@ -11,14 +11,17 @@ from collections import namedtuple
 from typing import List, Dict, Tuple, Union
 from collections import OrderedDict
 import phonenumbers
+from email_validator import validate_email
 import re
+import pprint
 
 
 this_module = sys.modules[__name__]
 
 def main():
     argparser = argparse.ArgumentParser(description=this_module.__doc__)
-    argparser.add_argument('--source-db', type=str)
+    argparser.add_argument('--source-db', type=str, required=True,
+        help="e.g. 'postgresql+psycopg2://foo:bar@example.com:42/defaultdb'")
     argparser.add_argument('--dest-db', type=str, default=None)
     argparser.add_argument('--source-dest-mapping', type=str,
         help='''
@@ -48,7 +51,8 @@ def main():
             ]
         ''',
         default=[
-            Src2Dest(InfoKind.phone, ["id"], "phone", "phone_number", None, None)
+            Src2Dest(InfoKind.phone, ["id"], "phone", "phone_number", None, None),
+            Src2Dest(InfoKind.email, ["id"], "service", "email", None, None)
         ]
     )
     
@@ -78,7 +82,7 @@ def main():
         dest_conn = dest_db.connect()
         
     for s2d in args.source_dest_mapping:
-        logger.info(f'Mapping {s2d}')
+        logger.info(f'Mapping \n{s2d}')
         
         if not len(s2d.key):
             raise Exception(f"keys not defined for table {s2d.source_table}") 
@@ -89,13 +93,14 @@ def main():
             key_sorting_statement = 'order by '+key_sorting_statement
         
         for offset in range(0, args.batch_row_size, args.max_rows_to_fetch):
+            logger.info(f"Fetching from {offset}")
             print(dict(
                     source_column=s2d.source_column,
                     source_table=s2d.source_table,
                     limit=args.batch_row_size,
                     offset=offset
                 ))
-            for result in src_conn.execute(
+            results = src_conn.execute(
                 f'''
                     select
                         {s2d.source_column}, {key_select} 
@@ -105,27 +110,40 @@ def main():
                     limit {args.batch_row_size}
                     offset {offset}
                 '''
-            ).fetchall():
-                src = result[0].strip()
+            ).fetchall()
+            
+            if not len(results):
+                break
+            
+            for result in results:
+                src = result[0]
                 if not src:
                     continue
+                stripped_src = src.strip()  
                 key_vals = result[1:]
                 sanitized = None
                 if s2d.kind == InfoKind.phone:
-                    sanitized = phonenumbers.format_number(phonenumbers.parse(src, 'US'), phonenumbers.PhoneNumberFormat.NATIONAL).replace('-', ' ')
-                    print(sanitized)
-                    if not sanitized:
+                    try:
+                        sanitized = phonenumbers.format_number(phonenumbers.parse(stripped_src, 'US'), phonenumbers.PhoneNumberFormat.NATIONAL).replace('-', ' ')
+                    except Exception as e:
                         logger.error(
-                            f"Unable to find phone number in txt '{src}' on table {s2d.source_table}.{s2d.source_column} with key (" +
+                            f"Unable to parse or find phone number in text '{src}' on table {s2d.source_table}.{s2d.source_column} with key (" +
                                 ', '.join( [f'{col}={val}' for col, val, in zip(s2d.key, key_vals) ] ) + 
-                                ')')
+                            ')  exception: {e}')
                     
                 elif s2d.kind == InfoKind.email:
-                    raise Exception("Unimplemented")
+                    try:
+                        sanitized = validate_email(stripped_src, check_deliverability=False).email
+                    except Exception as e:
+                        logger.error(
+                            f"Unable to parse or find email in text '{src}' on table {s2d.source_table}.{s2d.source_column} with key (" +
+                                ', '.join( [f'{col}={val}' for col, val, in zip(s2d.key, key_vals) ] ) + 
+                            ')  exception: {e}')
+                        
                 else:
                     logger.critical(f"Unknown kind={s2d.kind}")
                 
-                if sanitized == src:
+                if not sanitized or sanitized == src:
                     continue
                     
                 logger.debug(f"Sanitized '{src}' to '{sanitized}'") 
@@ -160,6 +178,8 @@ class Src2Dest(object):
         self.source_column = source_column
         self.dest_table = dest_table
         self.dest_column = dest_column
+    def __str__(self):
+        return 'Src2Dest(\n  ' + pprint.pformat(self.__dict__) +')'
         
 def positive_int(value):
     ivalue = int(value)
