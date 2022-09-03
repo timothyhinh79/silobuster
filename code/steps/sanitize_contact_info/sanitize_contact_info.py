@@ -11,6 +11,7 @@ from collections import namedtuple
 from typing import List, Dict, Tuple, Union
 from collections import OrderedDict
 import phonenumbers
+from email_validator import validate_email
 import re
 
 
@@ -18,7 +19,8 @@ this_module = sys.modules[__name__]
 
 def main():
     argparser = argparse.ArgumentParser(description=this_module.__doc__)
-    argparser.add_argument('--source-db', type=str)
+    argparser.add_argument('--source-db', type=str,
+        help="e.g. 'postgresql+psycopg2://foo:bar@example.com:42/defaultdb'")
     argparser.add_argument('--dest-db', type=str, default=None)
     argparser.add_argument('--source-dest-mapping', type=str,
         help='''
@@ -48,7 +50,8 @@ def main():
             ]
         ''',
         default=[
-            Src2Dest(InfoKind.phone, ["id"], "phone", "phone_number", None, None)
+            Src2Dest(InfoKind.phone, ["id"], "phone", "phone_number", None, None),
+            Src2Dest(InfoKind.email, ["id"], "service", "email", None, None)
         ]
     )
     
@@ -89,6 +92,7 @@ def main():
             key_sorting_statement = 'order by '+key_sorting_statement
         
         for offset in range(0, args.batch_row_size, args.max_rows_to_fetch):
+            logger.info(f"Fetching from {offset}")
             print(dict(
                     source_column=s2d.source_column,
                     source_table=s2d.source_table,
@@ -106,26 +110,34 @@ def main():
                     offset {offset}
                 '''
             ).fetchall():
-                src = result[0].strip()
+                src = result[0]
                 if not src:
                     continue
+                stripped_src = src.strip()  
                 key_vals = result[1:]
                 sanitized = None
                 if s2d.kind == InfoKind.phone:
-                    sanitized = phonenumbers.format_number(phonenumbers.parse(src, 'US'), phonenumbers.PhoneNumberFormat.NATIONAL).replace('-', ' ')
-                    print(sanitized)
-                    if not sanitized:
+                    try:
+                        sanitized = phonenumbers.format_number(phonenumbers.parse(stripped_src, 'US'), phonenumbers.PhoneNumberFormat.NATIONAL).replace('-', ' ')
+                    except:
                         logger.error(
-                            f"Unable to find phone number in txt '{src}' on table {s2d.source_table}.{s2d.source_column} with key (" +
+                            f"Unable to parse or find phone number in text '{src}' on table {s2d.source_table}.{s2d.source_column} with key (" +
                                 ', '.join( [f'{col}={val}' for col, val, in zip(s2d.key, key_vals) ] ) + 
-                                ')')
+                            ')')
                     
                 elif s2d.kind == InfoKind.email:
-                    raise Exception("Unimplemented")
+                    try:
+                        sanitized = validate_email(stripped_src, check_deliverability=False).email
+                    except:
+                        logger.error(
+                            f"Unable to parse or find email in text '{src}' on table {s2d.source_table}.{s2d.source_column} with key (" +
+                                ', '.join( [f'{col}={val}' for col, val, in zip(s2d.key, key_vals) ] ) + 
+                            ')')
+                        
                 else:
                     logger.critical(f"Unknown kind={s2d.kind}")
                 
-                if sanitized == src:
+                if not sanitized or sanitized == src:
                     continue
                     
                 logger.debug(f"Sanitized '{src}' to '{sanitized}'") 
