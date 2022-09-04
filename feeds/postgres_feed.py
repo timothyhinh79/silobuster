@@ -67,6 +67,8 @@ import sys
 import psycopg2
 import dedupe
 from psycopg2 import extras
+import csv
+import pandas as pd
 
 # abs_dir = input('Enter the absolute directory to the db_wrapper library')
 abs_dir = '/home/jamey/hackathon/microservice/source/service'
@@ -93,6 +95,10 @@ class PostgresFeed(AbstractFeed):
         with connector.connection.cursor(cursor_factory=extras.RealDictCursor) as cursor:
             cursor.execute(query)
             self.__raw_data = cursor.fetchall() # list of tuples
+        
+        with connector.connection.cursor() as cursor:
+            cursor.execute(query)
+            self.__raw_data_tuples = cursor.fetchall() # list of tuples
         
         
     @classmethod
@@ -138,6 +144,29 @@ class PostgresFeed(AbstractFeed):
     def raw_data(self):
         return self.__raw_data    
         
+
+    @property
+    def raw_data_tuples(self):
+        return self.__raw_data_tuples
+
+
+    @property
+    def df(self):
+        df = pd.DataFrame.from_records(self.raw_data)
+        return df
+
+
+    @property
+    def data_file(self):
+        for row in self.raw_data_tuples:
+
+            with open('temp_data.txt') as csvfile:
+                w = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+                w.writerow(row)
+
+        return w
+        
+
 
     @property
     def formatted_data(self):
