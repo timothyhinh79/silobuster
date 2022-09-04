@@ -17,7 +17,8 @@ PostgresFeed.from_manual_definition:
 REQUIRES: connector: PostgresConnector, query: string, column_definition: list of dictionaries, primary_key: dictionary
 
 column_definition EXAMPLE:
-'''
+```python
+
 col_def = [
     {"field": "name", "type": "String"},
     {"field": "address_1", "type": "String", "has missing": True},
@@ -27,6 +28,7 @@ col_def = [
     {"field": "postal_code", "type": "Exists", "has missing": True},
     {"field": "url", "type": "Exists", "has missing": True}
 ]
+
 '''
 You need to have "field" and "type" keys.
 primary_key: is a string of the column name for id
@@ -59,15 +61,18 @@ deduper = dedupe.Dedupe(pg_feed.variable_definition)
 deduper.prepare_training(pg_feed.formatted_data)
 dedupe.convenience.console_label(deduper)
 
-'''
+```
+
 
 At the point, you will enter training mode. The dedupe instance will give you pairs it thinks is duplicates and you will train the model from your answers.
 
 You are then to train the dedupe with:
 
-'''
+```python
+
 deduper.train()
-'''
+
+```
 
 This is the hickup. According to the error thrown, an "index" needs to be created. From online examples, that is not the use case. Any help is appreciated.
 
@@ -75,7 +80,8 @@ This is the hickup. According to the error thrown, an "index" needs to be create
 
 The working example is using the pandas_dedupe library. With the exact same setup, it does not throw an "index" error.
 
-'''
+```python
+
 import pandas as pd
 import pandas_dedupe
 
@@ -86,6 +92,7 @@ from feeds.postgres_feed import PostgresFeed
 pg_conn = PostgresConnector(db='yourdb', username='user', password='pass', host='host', port=25060)
 
 select_qry = "SELECT id, name as company_name, address_1, address_2, city, state_province, postal_code, url, description, duplicate_id, duplicate_type FROM organizations_normalized WHERE name IS NOT NULL AND NOT name = '' AND address_1 IS NOT NULL AND NOT address_1 = '' AND city IS NOT NULL AND NOT city = ''"
+
 raw_def = [
     {"field": "company_name", "type": "String"},
     {"field": "address_1", "type": "String", "has missing": True},
@@ -113,4 +120,5 @@ df_final = pandas_dedupe.dedupe_dataframe(pg_feed.df, [
 ])
 
 df_final.to_csv('deduplication_output.csv')
-'''
+
+```
