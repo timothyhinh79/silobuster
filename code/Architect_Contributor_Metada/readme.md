@@ -3,7 +3,7 @@
 Original work provided by Eric Hummel. This story turned into a large question of how to store general metadata related to workflow steps, contributors, and results from workflow steps such that we can maintain state for the import/cleanup/dedupe process and generate useful reports.
 
 ## Modules
-Modules are run in batch mode.  Each run results in a new runs table record and a set of analysis records.
+Modules are run in batch mode. Each run results in a new runs table record and a set of analysis records.
   
 ### Datascrubbing Module
 Identifies and removes syntax errors at record/field level.
