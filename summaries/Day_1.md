@@ -9,6 +9,7 @@ With additional stakholder and administor support from:
 - Eric Hummel
 - Sarah Solomon
 - Vesla Tonnessen
+- Kylie Johnson
 
 We started at 8am. Most folks were wrapped up and going home by 5:30. It's rumored that Skyler kept working on data transformation until 11pm.
 
