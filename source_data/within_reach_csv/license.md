@@ -1,0 +1,1 @@
+No WithinReach resource data, or any information or documentation generated from such data may be licensed, rented, leased, or otherwise monetized.

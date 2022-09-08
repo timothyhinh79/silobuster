@@ -1,10 +1,11 @@
 # Architect Contributor Metadata
-
+  
 ## Assigned to:
 - github_user
 
 ## Description
 This is an architecture story. Design and document how to store meta data about _who_ is contributing and to _which_ data records.
+  
 
 ## Requirements
 

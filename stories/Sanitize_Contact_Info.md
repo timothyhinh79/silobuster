@@ -16,7 +16,7 @@ Make a bullet list of the things that the code must do.
 - Recognize supplemental data and store in appropriate fields, ie phone extensions in  `phone.extention`.
 - If the `type` for a phone record cannot be determined, flag for review by data manager.
 - Recognize multiple emails or urls in an entry and pull out the first one to store.
-- Coerce all data into ITU E.123 format for international numbers.
+- Coerce all data into ITU E.123 format for international numbers. EDIT: we decided at the event to use domestic notation.
 
 ### Constraints
 Make a list of the limitations/things the code can _not_ do.
