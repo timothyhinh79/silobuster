@@ -1,4 +1,6 @@
 # Regular expression for identifying URLs
+# Source: https://gist.github.com/dperini/729294
+  # Code has been adapted from JS to Python
 
 # protocol identifier (optional) \ # protocol identifier (optional)
 # short syntax // still required
