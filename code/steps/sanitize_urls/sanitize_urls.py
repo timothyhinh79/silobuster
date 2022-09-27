@@ -1,8 +1,38 @@
 import re
 import requests
 from urllib.parse import urlparse
+from concurrent.futures import as_completed
+from concurrent.futures import ThreadPoolExecutor
+
 from url_regex import url_regex
 
+def sanitize_urls_parallel(strings, num_threads):
+    """Runs sanitize_urls() on each string in a given list in a parallelized procedure
+    
+    Parameters:
+        strings (list): List of raw strings with URL(s) 
+        num_threads (int): number of workers to run sanitize_urls simultaneously 
+            (e.g. if num_threads = 100, this method will process 100 strings at a time)
+
+    Returns:
+        List of JSONs returned for each string by the sanitize_urls() method 
+    """
+
+    n_threads = min(num_threads, len(strings))
+    executor = ThreadPoolExecutor(n_threads)
+    
+    # establishing parallel sessions/processes to run the sanitize_urls method, assigned to an index number to keep track of the ordering of each result
+    futures = {executor.submit(sanitize_urls, string):index for index, string in zip(range(len(strings)), strings)}
+
+    responses = [] # responses are appended more or less randomly depending on when the corresponding session completes
+    indices = [] # used to keep track of original ordering of each response
+    for future in as_completed(futures):
+        responses.append(future.result())
+        indices.append(futures[future])
+
+    # sorting the responses based on the original ordering of the corresponding strings
+    return [response for _, response in sorted(zip(indices, responses))]
+    
 
 def sanitize_urls(string):
     """Extract URLs from given string (using Regex) and logs each URL's status code
@@ -53,6 +83,24 @@ def assign_status(string, url_strings):
     else:
         return 'String contains multiple URLs'
 
+
+def get_url_status(url_string):
+    """Retrieves status code for the given URL
+    
+    Parameters:
+        url_string (str): URL
+
+    Returns:
+        status_code (int): status code of given URL; -1 if URL does not exist
+    """
+
+    try:
+        status_code = requests.head(url_string, timeout = 5).status_code
+    except:
+        return -1
+
+    return status_code
+
 def assign_url_status(url_string, root_url):
     """Retrieves status codes for the given URL and the embedded root URL
     
@@ -78,25 +126,6 @@ def assign_url_status(url_string, root_url):
 
     return output
 
-
-# test if given url_string is a valid URL that returns a 200 status code
-def get_url_status(url_string):
-    """Retrieves status code for the given URL
-    
-    Parameters:
-        url_string (str): URL
-
-    Returns:
-        status_code (int): status code of given URL; -1 if URL does not exist
-    """
-
-    try:
-        status_code = requests.head(url_string, timeout = 5).status_code
-    except:
-        return -1
-
-    return status_code
-
 def extract_root_url(url_string):
     """Extracts root URL from given URL string
     
@@ -109,3 +138,4 @@ def extract_root_url(url_string):
 
     url_parts = urlparse(url_string)
     return url_parts.scheme + '://' + url_parts.netloc
+
