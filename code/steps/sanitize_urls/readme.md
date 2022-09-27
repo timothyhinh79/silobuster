@@ -23,9 +23,11 @@ The task is to extract URLs in a given string and to log whether each URL is val
 
 ## Resources
 - Regex pattern used for identifying valid URLs comes from here: https://gist.github.com/dperini/729294
+- Logic for parallelizing the sanitize_urls() method comes from here: https://superfastpython.com/threadpoolexecutor-validate-links/#Validate_Multiple_Links_Concurrently
 - Libraries:
     - re
     - requests
     - urlparse
+    - concurrent.futures
 
 
