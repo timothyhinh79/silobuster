@@ -4,6 +4,10 @@ from sanitize_urls import *
 import time
 import numpy as np
 
+# Potential Issue to investigate:
+# interestingly, http://nonsenseurlthatdoesntexistz.com/ still returns a 200 status code...
+# but if the scheme is https instead of http, it expectedly errors out
+
 def test_get_url_status():
     extra_characters = 'asdf'
     test_valid_url = 'https://www.w3.org/Addressing/URL/url-spec.txt'
@@ -117,12 +121,4 @@ def test_sanitize_urls_parallel_with_all_urls_from_within_service_csv():
     assert len(output) == len(urls)
     assert elapsed_time < 30
 
-
-# INVESTIGATE!!
-# interestingly, http://nonsenseurlthatdoesntexistz.com/ still returns a 200 status code...
-# it the scheme is https instead of http, the requests.get expectedly errors out
-# def test_sanitize_urls_with_valid_URL_string_that_does_not_exist():
-#     test_url = 'https://nonsenseurlthatdoesntexistz.com/'
-
-#     assert sanitize_urls(test_url) == []
 
