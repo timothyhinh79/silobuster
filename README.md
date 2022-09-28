@@ -44,3 +44,5 @@ The goal of this initiative is to carry on where ServiceNet left off, working cl
 1. ServiceNet primarily utilized API integrations, which are a lot of work for stakeholders to integrate with on their end. While API integration will eventually be a part of this project, we are staring with bulk import orchestration using Airflow + connectors (Fivetran, Airbyte, etc). This is, again, very flexible, and gives participating members more flexibility to easily share data from different formats and using different methods.
 
 2. ServiceNet is some very nifty code written primarily in Java, via the JHipster library. While good code, the talent pool of developers available to work on it has been small. We are adopting languages that are generally more approachable and widely used in open source commumities: Python, Javascript, and C#.
+
+Testing ability to push. Remove later.
