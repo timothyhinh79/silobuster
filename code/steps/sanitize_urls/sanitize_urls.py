@@ -1,12 +1,15 @@
-import re
-import requests
-from urllib.parse import urlparse
+import requests # used to validate if URLs exist
+from urllib.parse import urlparse # used to extract root URLs
+# as_completed and ThreadPoolExecutor used to run sanitize_urls() method on multiple strings in parallel for efficiency
 from concurrent.futures import as_completed
 from concurrent.futures import ThreadPoolExecutor
+import re # Regex used to identify valid URL patterns
+from url_regex import url_regex # used to identify valid URL strings
 
-from url_regex import url_regex
+num_threads_default = 100 # number of threads to run sanitize URLs in parallel
+requests_head_timeout_default = 2 # allowing 2 seconds for requests.head() to validate if a given URL exists
 
-def sanitize_urls_parallel(strings, num_threads):
+def sanitize_urls_parallel(strings, num_threads = num_threads_default, timeout = requests_head_timeout_default):
     """Runs sanitize_urls() on each string in a given list in a parallelized procedure
     
     Parameters:
@@ -22,7 +25,7 @@ def sanitize_urls_parallel(strings, num_threads):
     executor = ThreadPoolExecutor(n_threads)
     
     # establishing parallel sessions/processes to run the sanitize_urls method, assigned to an index number to keep track of the ordering of each result
-    futures = {executor.submit(sanitize_urls, string):index for index, string in zip(range(len(strings)), strings)}
+    futures = {executor.submit(sanitize_urls, string, timeout):index for index, string in zip(range(len(strings)), strings)}
 
     responses = [] # responses are appended more or less randomly depending on when the corresponding session completes
     indices = [] # used to keep track of original ordering of each response
@@ -34,7 +37,7 @@ def sanitize_urls_parallel(strings, num_threads):
     return [response for _, response in sorted(zip(indices, responses))]
     
 
-def sanitize_urls(string):
+def sanitize_urls(string, timeout):
     """Extract URLs from given string (using Regex) and logs each URL's status code
     
     Parameters:
@@ -42,7 +45,7 @@ def sanitize_urls(string):
 
     Returns:
         json_output (dict): JSON-like object with following information:
-            'status' (str): indicates if string contains URLs
+            'condition' (str): indicates if string contains URLs
             'URLs' (list): nested-JSON with following attributes on each URL:
                 'URL' (str): full URL match
                 'root_URL' (str): root URL within the matched URL
@@ -51,21 +54,21 @@ def sanitize_urls(string):
     """
 
     url_strings = re.findall(url_regex, string)
-    status = assign_status(string, url_strings)
+    condition = assign_string_condition(string, url_strings)
     
     # construct JSON with each URL regex match, root URL, and status codes
     url_output = []
     for url_string in url_strings:
         root_url = extract_root_url(url_string)
-        url_status = assign_url_status(url_string, root_url)
+        url_status = assign_url_status(url_string, root_url, timeout)
         url_output.append({'URL': url_string, 'root_URL': root_url})
         url_output[-1].update(url_status)
         
-    json_output = {'status': status, 'URLs': url_output}
+    json_output = {'condition': condition, 'URLs': url_output}
     return json_output
 
-def assign_status(string, url_strings):
-    """Assigns appropriate status to given string based on URL Regex matches 
+def assign_string_condition(string, url_strings):
+    """Assigns appropriate condition to given string based on URL Regex matches 
     
     Parameters:
         string (str): Raw string with URL(s) 
@@ -77,14 +80,14 @@ def assign_status(string, url_strings):
     if url_strings == []: return 'String contains no URLs'
 
     if url_strings[0] == string:
-        return 'Entire string is URL'
+        return 'String is URL'
     elif len(url_strings) == 1:
-        return 'String contains one URL'
+        return 'String is not URL but contains one'
     else:
         return 'String contains multiple URLs'
 
 
-def get_url_status(url_string):
+def get_url_status(url_string, timeout):
     """Retrieves status code for the given URL
     
     Parameters:
@@ -95,13 +98,13 @@ def get_url_status(url_string):
     """
 
     try:
-        status_code = requests.head(url_string, timeout = 5).status_code
+        status_code = requests.head(url_string, timeout = timeout).status_code
     except:
         return -1
 
     return status_code
 
-def assign_url_status(url_string, root_url):
+def assign_url_status(url_string, root_url, timeout):
     """Retrieves status codes for the given URL and the embedded root URL
     
     Parameters:
@@ -114,14 +117,14 @@ def assign_url_status(url_string, root_url):
             'root_URL_status': status code of root URL within full URL
     """
 
-    url_status_code = get_url_status(url_string)
+    url_status_code = get_url_status(url_string, timeout)
     output = {'URL_status': url_status_code}
 
     # if full URL returns 200, then we assume root URL returns 200
     if url_status_code == 200:
         root_url_status_code = 200
     else:
-        root_url_status_code = get_url_status(root_url)
+        root_url_status_code = get_url_status(root_url, timeout)
     output['root_URL_status'] = root_url_status_code
 
     return output
