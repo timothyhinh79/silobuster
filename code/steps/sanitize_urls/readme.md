@@ -27,7 +27,7 @@ The task is to extract URLs in a given string and to log whether each URL is val
 - Libraries:
     - re
     - requests
-    - urlparse
+    - urllib.parse
     - concurrent.futures
 
 
