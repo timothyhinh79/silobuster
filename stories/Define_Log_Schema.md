@@ -31,23 +31,19 @@ Here's a first attempt at defining something along those lines. It enhances just
     "id": "string",
     "source_data_set": "string",
     "link_entity": "string",
-    "link_fields": [
-        "string"
-    ],
+    // "link_fields": [
+    //     "string"
+    // ],
     "link_id": "string",
     "import_run_id": "string",
     "action_name": "string",
     "message": "string",
-    "message_code?": "string",
+    // "message_code?": "string",
     "prompts": [
       {
-        "prompt": "string",
-        "fields": [
-            {
-                "suggested_value": "string",
-                "field": "string"
-            }
-        ]
+        "description": "string",
+        "suggested_value": "string",
+        "link_field": "string"
       }
     ],
     "passed": "boolean"
@@ -55,3 +51,7 @@ Here's a first attempt at defining something along those lines. It enhances just
 ```
 
 There is some duplication between the root level `link_fields` and the `fields` array inside `prompts`. Perhaps we only need the latter.
+
+### questions:
+- Is it enough to just suggest a _value_ for fields, or do we also need to give notes/descriptions for the fields too, like lables or something.
+- What are cases where a promt doesn't even include suggesting a value.
