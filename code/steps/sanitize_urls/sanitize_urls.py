@@ -9,6 +9,10 @@ from url_regex import url_regex # used to identify valid URL strings
 num_threads_default = 100 # number of threads to run sanitize URLs in parallel
 requests_head_timeout_default = 1 # allowing 1 seconds for requests.head() to validate if a given URL exists
 
+def get_sanitized_urls_as_string(sanitized_urls_json):
+    clean_urls = [url['URL'] for url in sanitized_urls_json['URLs']]
+    return ', '.join(clean_urls)
+
 def sanitize_urls_parallel(strings, num_threads = num_threads_default, timeout = requests_head_timeout_default):
     """Runs sanitize_urls() on each string in a given list in a parallelized procedure
     
