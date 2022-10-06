@@ -140,6 +140,7 @@ def main():
                 # TO-DO: add flexibility for different data types on key fields (e.g. INTEGER)..
                 key_schema = ', '.join([key + ' VARCHAR' for key in s2d.key])
                 key_join_str = ' AND '.join([f'{s2d.source_table}.{key}=urls_temp.{key}' for key in s2d.key])
+                key_dest_update_str = ' AND '.join([f'{s2d.dest_table}.{key}=urls_temp.{key}' for key in s2d.key])
                 
                 # setting up multiple SQL queries to create a mapping table with the keys and sanitized urls, then using that table to update the source table
                 sql_str = f"""
@@ -161,25 +162,52 @@ def main():
                         SET {s2d.source_column} = urls_temp.url
                         FROM urls_temp
                         WHERE {key_join_str};
+
+                        DROP TABLE urls_temp;
                     """
+
+                    src_conn.execute(
+                        sqlalchemy.sql.text(sql_str), sanitized_urls_json = json.dumps(sanitized_urls_w_keys)
+                    )
                 else:
-                    sql_str += f"""
-                        DROP TABLE IF EXISTS {s2d.dest_table};
+                    # getting column names from source table, except for dest_column
+                    source_cols = src_conn.execute(
+                        sqlalchemy.sql.text(f"""
+                            SELECT column_name
+                            FROM information_schema.columns
+                            WHERE table_name = '{s2d.source_table}'
+                                AND column_name != '{s2d.dest_column}'
+                            ORDER BY ordinal_position;
+                        """)
+                    ).fetchall()
 
-                        CREATE TABLE {s2d.dest_table} AS
-                        SELECT urls_temp.url AS {s2d.dest_column}, {s2d.source_table}.* 
-                        FROM {s2d.source_table}
-                        JOIN urls_temp ON {key_join_str};
+                    source_cols_str = ','.join([f'{s2d.source_table}.{column_name[0]}' for column_name in source_cols])
 
-                    """
+                    # if first batch, recreate table with sanitized data for the first batch
+                    if offset == 0:
+                        sql_str += f"""
+                            DROP TABLE IF EXISTS {s2d.dest_table};
+
+                            CREATE TABLE {s2d.dest_table} AS
+                            SELECT urls_temp.url AS {s2d.dest_column}, {source_cols_str} 
+                            FROM {s2d.source_table}
+                            LEFT JOIN urls_temp ON {key_join_str};
+                        """
+                    # if this is not the first batch, update data from current batch
+                    else:
+                        sql_str += f"""
+                            UPDATE {s2d.dest_table}
+                            SET {s2d.dest_column} = urls_temp.url
+                            FROM urls_temp
+                            WHERE {key_dest_update_str};
+                        """
+                    sql_str += "DROP TABLE urls_temp;"
+
+                    dest_conn.execute(
+                        sqlalchemy.sql.text(sql_str), sanitized_urls_json = json.dumps(sanitized_urls_w_keys)
+                    )
+
                 
-                sql_str += f"""
-                    DROP TABLE urls_temp;
-                """
-
-                src_conn.execute(
-                    sqlalchemy.sql.text(sql_str), sanitized_urls_json = json.dumps(sanitized_urls_w_keys)
-                )
                 
 
             else:
