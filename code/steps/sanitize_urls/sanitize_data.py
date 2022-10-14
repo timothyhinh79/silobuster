@@ -12,15 +12,17 @@ from typing import List, Dict, Tuple, Union
 from collections import OrderedDict
 import phonenumbers
 from email_validator import validate_email
-import re
 import pprint
 
-from sanitize_urls import sanitize_urls_parallel, get_sanitized_urls_as_string
-
+from pg_sanitization import *
+from sanitize_urls import get_sanitized_urls
+from sanitize_phone_nums import get_sanitized_phone_nums
+from sanitize_emails import get_sanitized_emails
 
 this_module = sys.modules[__name__]
 
 def main():
+    # defining Bash arguments for sanitize_data command
     argparser = argparse.ArgumentParser(description=this_module.__doc__)
     argparser.add_argument('--source-db', type=str, required=True,
         help="e.g. 'postgresql+psycopg2://foo:bar@example.com:42/defaultdb'")
@@ -81,13 +83,8 @@ def main():
 
     logger = logging.getLogger()
         
-    src_db = sqlalchemy.create_engine(args.source_db, echo=True)
-    src_conn = src_db.connect()
-    dest_db = None
-    dest_conn = None
-    if args.dest_db:
-        dest_db = sqlalchemy.create_engine(args.dest_db, echo=True)
-        dest_conn = dest_db.connect()
+    src_db, src_conn = get_src_db(args)
+    dest_db, dest_conn = get_dest_db(args)
         
     for s2d in args.source_dest_mapping:
         logger.info(f'Mapping \n{s2d}')
@@ -95,10 +92,11 @@ def main():
         if not len(s2d.key):
             raise Exception(f"keys not defined for table {s2d.source_table}") 
         
+        if s2d.kind not in ['url', 'email', 'phone']:
+            raise Exception(f"Unknown kind={s2d.kind}")
+        
         key_select = ", ".join(s2d.key)
-        key_sorting_statement = ', '.join(s2d.key)
-        if key_sorting_statement:
-            key_sorting_statement = 'order by '+key_sorting_statement
+        key_sorting_statement = get_key_sorting_statement(s2d.key)
         
         for offset in range(0, args.max_rows_to_fetch, args.batch_row_size):
             logger.info(f"Fetching from {offset}")
@@ -109,159 +107,60 @@ def main():
                     offset=offset
                 ))
 
-            results = src_conn.execute(
-                f'''
-                    select
-                        {s2d.source_column}, {key_select} 
-                    from
-                        {s2d.source_table}
-                    {key_sorting_statement}
-                    limit {args.batch_row_size}
-                    offset {offset}
-                '''
-            ).fetchall()    
+            results = query_db(
+                src_conn, 
+                table = s2d.source_table, 
+                column = s2d.source_column, 
+                key_select = key_select, 
+                key_sorting_statement = key_sorting_statement, 
+                batch = args.batch_row_size, 
+                offset = offset
+            )   
             
             if not len(results):
                 break
-            
-            if s2d.kind == 'url':
-                
-                # separating keys from raw urls, which will be sanitized
-                key_vals_rows = [result[1:] for result in results]
-                raw_urls = [result[0] for result in results]
 
-                # getting sanitized urls with keys
-                sanitized_urls = sanitize_urls_parallel(raw_urls)
-                sanitized_url_strings = [get_sanitized_urls_as_string(url_json) for url_json in sanitized_urls]
-                sanitized_urls_w_keys = [{key:key_val for key, key_val in zip(s2d.key, key_vals)} for key_vals in key_vals_rows]
-                for key_vals_dict, clean_url in zip(sanitized_urls_w_keys, sanitized_url_strings):
-                    key_vals_dict['url'] = clean_url
+            key_vals = [result[1:] for result in results]
+            raw_data = [result[0] for result in results]
 
-                # TO-DO: add flexibility for different data types on key fields (e.g. INTEGER)..
-                key_schema = ', '.join([key + ' VARCHAR' for key in s2d.key])
-                key_join_str = ' AND '.join([f'{s2d.source_table}.{key}=urls_temp.{key}' for key in s2d.key])
-                key_dest_update_str = ' AND '.join([f'{s2d.dest_table}.{key}=urls_temp.{key}' for key in s2d.key])
-                
-                # setting up multiple SQL queries to create a mapping table with the keys and sanitized urls, then using that table to update the source table
-                sql_str = f"""
-                    DROP TABLE IF EXISTS urls_temp;
-                    
-                    CREATE TABLE urls_temp (
-                        {key_schema}
-                        , url VARCHAR
-                    );
+            if s2d.kind == 'url': 
+                sanitized_data = get_sanitized_urls(raw_data, keys = s2d.key, key_vals = key_vals)
+            elif s2d.kind == 'phone':
+                sanitized_data = get_sanitized_phone_nums(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, infokind = s2d.kind, logger = logger)
+            elif s2d.kind == 'email':
+                sanitized_data = get_sanitized_emails(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, infokind = s2d.kind, logger = logger)
 
-                    INSERT INTO urls_temp
-                    SELECT *
-                    FROM json_populate_recordset(NULL::urls_temp, :sanitized_urls_json);
-                    """
-
+            if not args.write:
                 if not dest_conn:
-                    sql_str += f"""
-                        UPDATE {s2d.source_table}
-                        SET {s2d.source_column} = urls_temp.url
-                        FROM urls_temp
-                        WHERE {key_join_str};
-
-                        DROP TABLE urls_temp;
-                    """
-
-                    src_conn.execute(
-                        sqlalchemy.sql.text(sql_str), sanitized_urls_json = json.dumps(sanitized_urls_w_keys)
+                    update_src_data(
+                        src_conn, 
+                        source_table = s2d.source_table, 
+                        source_column = s2d.source_column, 
+                        keys = s2d.key, 
+                        sanitized_data = sanitized_data,
+                        sanitized_field=s2d.kind
                     )
+
                 else:
-                    # getting column names from source table, except for dest_column
-                    source_cols = src_conn.execute(
-                        sqlalchemy.sql.text(f"""
-                            SELECT column_name
-                            FROM information_schema.columns
-                            WHERE table_name = '{s2d.source_table}'
-                                AND column_name != '{s2d.dest_column}'
-                            ORDER BY ordinal_position;
-                        """)
-                    ).fetchall()
-
-                    source_cols_str = ','.join([f'{s2d.source_table}.{column_name[0]}' for column_name in source_cols])
-
-                    # if first batch, recreate table with sanitized data for the first batch
-                    if offset == 0:
-                        sql_str += f"""
-                            DROP TABLE IF EXISTS {s2d.dest_table};
-
-                            CREATE TABLE {s2d.dest_table} AS
-                            SELECT urls_temp.url AS {s2d.dest_column}, {source_cols_str} 
-                            FROM {s2d.source_table}
-                            LEFT JOIN urls_temp ON {key_join_str};
-                        """
-                    # if this is not the first batch, update data from current batch
-                    else:
-                        sql_str += f"""
-                            UPDATE {s2d.dest_table}
-                            SET {s2d.dest_column} = urls_temp.url
-                            FROM urls_temp
-                            WHERE {key_dest_update_str};
-                        """
-                    sql_str += "DROP TABLE urls_temp;"
-
-                    dest_conn.execute(
-                        sqlalchemy.sql.text(sql_str), sanitized_urls_json = json.dumps(sanitized_urls_w_keys)
-                    )
-
+                    if offset == 0: 
+                        create_dest_table(
+                            src_conn, 
+                            dest_conn, 
+                            source_table = s2d.source_table, 
+                            dest_table = s2d.dest_table, 
+                            source_column = s2d.source_column,
+                            dest_column = s2d.dest_column
+                        )
+                    update_dest_data(
+                        dest_conn, 
+                        dest_table = s2d.dest_table, 
+                        dest_column = s2d.dest_column, 
+                        keys = s2d.key, 
+                        sanitized_data = sanitized_data,
+                        sanitized_field=s2d.kind
+                    ) 
                 
-                
-
-            else:
-                for result in results:
-                    src = result[0]
-                    if not src:
-                        continue
-                    stripped_src = src.strip()  
-                    key_vals = result[1:]
-                    sanitized = None
-                    if s2d.kind == InfoKind.phone:
-                        try:
-                            sanitized = phonenumbers.format_number(phonenumbers.parse(stripped_src, 'US'), phonenumbers.PhoneNumberFormat.NATIONAL).replace('-', ' ')
-                        except Exception as e:
-                            logger.error(
-                                f"Unable to parse or find phone number in text '{src}' on table {s2d.source_table}.{s2d.source_column} with key (" +
-                                    ', '.join( [f'{col}={val}' for col, val, in zip(s2d.key, key_vals) ] ) + 
-                                ')  exception: {e}')
-                        
-                    elif s2d.kind == InfoKind.email:
-                        try:
-                            sanitized = validate_email(stripped_src, check_deliverability=False).email
-                        except Exception as e:
-                            logger.error(
-                                f"Unable to parse or find email in text '{src}' on table {s2d.source_table}.{s2d.source_column} with key (" +
-                                    ', '.join( [f'{col}={val}' for col, val, in zip(s2d.key, key_vals) ] ) + 
-                                ')  exception: {e}')
-                            
-                    else:
-                        logger.critical(f"Unknown kind={s2d.kind}")
-                    
-                    if not sanitized or sanitized == src:
-                        continue
-                        
-                    logger.debug(f"Sanitized '{src}' to '{sanitized}'") 
-                    if not args.write or dest_db or not s2d.dest_table or not s2d.dest_column:
-                        continue
-                
-                    src_conn.execute(
-                        sqlalchemy.sql.text(
-                            f'''
-                                update {s2d.dest_table}
-                                set
-                                    {s2d.dest_column} = :sanitized    
-                                where
-                            ''' +
-                            'and\n  '.join( [f'{col}=:col_{i}__' for i,col in s2d.keys()]) 
-                        ),
-                        **{f'col_{i}__': v for i,v in enumerate(key_vals)}
-                    )
-                
-    
-    
-        
+ 
 class InfoKind(Enum):
     phone = "phone"
     email = "email"

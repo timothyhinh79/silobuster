@@ -6,8 +6,24 @@ from concurrent.futures import ThreadPoolExecutor
 import re # Regex used to identify valid URL patterns
 from url_regex import url_regex # used to identify valid URL strings
 
+from helper_methods import jsonify
+
 num_threads_default = 100 # number of threads to run sanitize URLs in parallel
 requests_head_timeout_default = 1 # allowing 1 seconds for requests.head() to validate if a given URL exists
+
+def get_sanitized_urls(raw_urls, keys, key_vals, source_table, source_column, logger):
+    sanitized_urls = sanitize_urls_parallel(raw_urls)
+    sanitized_url_strings = [get_sanitized_urls_as_string(url_json) for url_json in sanitized_urls]
+    return jsonify(keys, key_vals, 'url', sanitized_url_strings)
+
+def get_sanitized_urls(raw_urls, keys, key_vals):
+    # getting sanitized urls with keys
+    sanitized_urls = sanitize_urls_parallel(raw_urls)
+    sanitized_url_strings = [get_sanitized_urls_as_string(url_json) for url_json in sanitized_urls]
+    sanitized_urls_w_keys = [{key:key_val for key, key_val in zip(keys, key_vals_tuple)} for key_vals_tuple in key_vals]
+    for key_vals_dict, clean_url in zip(sanitized_urls_w_keys, sanitized_url_strings):
+        key_vals_dict['url'] = clean_url
+    return sanitized_urls_w_keys
 
 def get_sanitized_urls_as_string(sanitized_urls_json):
     clean_urls = [url['URL'] for url in sanitized_urls_json['URLs']]
