@@ -124,7 +124,7 @@ def main():
             raw_data = [result[0] for result in results]
 
             if s2d.kind == 'url': 
-                sanitized_data = get_sanitized_urls(raw_data, keys = s2d.key, key_vals = key_vals)
+                sanitized_data = get_sanitized_urls(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, infokind = s2d.kind, logger = logger)
             elif s2d.kind == 'phone':
                 sanitized_data = get_sanitized_phone_nums(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, infokind = s2d.kind, logger = logger)
             elif s2d.kind == 'email':

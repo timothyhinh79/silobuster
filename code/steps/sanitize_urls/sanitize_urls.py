@@ -9,21 +9,29 @@ from url_regex import url_regex # used to identify valid URL strings
 from helper_methods import jsonify
 
 num_threads_default = 100 # number of threads to run sanitize URLs in parallel
-requests_head_timeout_default = 1 # allowing 1 seconds for requests.head() to validate if a given URL exists
+requests_head_timeout_default = 5 # allowing 1 seconds for requests.head() to validate if a given URL exists
 
-def get_sanitized_urls(raw_urls, keys, key_vals, source_table, source_column, logger):
+def get_sanitized_urls(raw_urls, keys, key_vals, source_table, source_column, infokind, logger):
     sanitized_urls = sanitize_urls_parallel(raw_urls)
-    sanitized_url_strings = [get_sanitized_urls_as_string(url_json) for url_json in sanitized_urls]
-    return jsonify(keys, key_vals, 'url', sanitized_url_strings)
+    sanitized_url_jsons = []
+    for key_vals_tuple, sanitized_url in zip(key_vals, sanitized_urls):
 
-def get_sanitized_urls(raw_urls, keys, key_vals):
-    # getting sanitized urls with keys
-    sanitized_urls = sanitize_urls_parallel(raw_urls)
-    sanitized_url_strings = [get_sanitized_urls_as_string(url_json) for url_json in sanitized_urls]
-    sanitized_urls_w_keys = [{key:key_val for key, key_val in zip(keys, key_vals_tuple)} for key_vals_tuple in key_vals]
-    for key_vals_dict, clean_url in zip(sanitized_urls_w_keys, sanitized_url_strings):
-        key_vals_dict['url'] = clean_url
-    return sanitized_urls_w_keys
+        error_location_str = f"{source_table}.{source_column} with key ({', '.join( [f'{col}={val}' for col, val, in zip(keys, key_vals_tuple) ] ) })"
+
+        if sanitized_url['condition'] != 'String is URL':
+            logger.error(f"{sanitized_url['condition']} in {error_location_str}")
+
+        for url in sanitized_url['URLs']:
+            if url['URL_status'] == -1:
+                logger.error(f"Invalid URL ({url['URL']}) found in {error_location_str})")
+            elif url['URL_status'] > 400:
+                logger.error(f"URL ({url['URL']}) returns {url['URL_status']} response in {error_location_str})")
+
+        sanitized_url_str = get_sanitized_urls_as_string(sanitized_url)
+        sanitized_url_jsons.append({key:key_val for key, key_val in zip(keys, key_vals_tuple)} | {infokind: sanitized_url_str})
+
+    return sanitized_url_jsons
+
 
 def get_sanitized_urls_as_string(sanitized_urls_json):
     clean_urls = [url['URL'] for url in sanitized_urls_json['URLs']]
