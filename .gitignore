@@ -1,3 +1,6 @@
+# dump files for transferring tables between postgres connections
+*.dmp
+
 .DS_Store
 # Byte-compiled / optimized / DLL files
 __pycache__/

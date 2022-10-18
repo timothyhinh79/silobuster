@@ -5,13 +5,31 @@ from concurrent.futures import as_completed
 from concurrent.futures import ThreadPoolExecutor
 import re # Regex used to identify valid URL patterns
 from url_regex import url_regex # used to identify valid URL strings
+import time # to allow subsequent validation attempts on URLs returning 429 or 503
 
 from helper_methods import jsonify
 
-num_threads_default = 100 # number of threads to run sanitize URLs in parallel
-requests_head_timeout_default = 5 # allowing 1 seconds for requests.head() to validate if a given URL exists
+num_threads_default = 200 # number of threads to run sanitize URLs in parallel
+requests_timeout_default = 20 # allowing 1 seconds for requests.get() to validate if a given URL exists
+retry_after_default = 10 # of seconds to reattempt validation of URLs that initially return 429 or 503
+max_attempts_default = 3 # of maximum attempts to retrieve a valid status code for URLs initially returnning 429 or 503
 
 def get_sanitized_urls(raw_urls, keys, key_vals, source_table, source_column, infokind, logger):
+    """Sanitizes the given raw_urls, and returns a JSON with the given keys and sanitized URLs
+       Also logs certain events for sub-optimal situations where the given string is not a valid URL
+    
+    Parameters:
+        raw_urls (list): array of raw URL strings from table to sanitize
+        keys (list): array of column names for the keys (e.g. ID)
+        key_vals (list): array of tuples, each one have the values of each key field for a specific record
+        source_table (str): name of source table containing un-sanitized data
+        source_column (str): name of column in source table with the un-sanitized data
+        infokind (str): one of [phone, email, url]
+        logger (logging.RootLogger): logger to output messages on success of sanitization to the terminal for debugging 
+
+    Returns:
+        sanitized_url_jsons (dict): JSONs summarizing key values and sanitized URLs for each record
+    """
     sanitized_urls = sanitize_urls_parallel(raw_urls)
     sanitized_url_jsons = []
     for key_vals_tuple, sanitized_url in zip(key_vals, sanitized_urls):
@@ -34,10 +52,19 @@ def get_sanitized_urls(raw_urls, keys, key_vals, source_table, source_column, in
 
 
 def get_sanitized_urls_as_string(sanitized_urls_json):
+    """Extracts the sanitized URL string from JSON output of sanitize_urls_parallel(); 
+        if there are multiple URLs in a record, this method combines them into a single string separated by a comma
+    
+    Parameters:
+        sanitized_urls_json (dict): JSONs summarizing the URLs and root URLs found in each record
+
+    Returns:
+        single string with the sanitized URL, or multiple URLs separated by a comma
+    """
     clean_urls = [url['URL'] for url in sanitized_urls_json['URLs']]
     return ', '.join(clean_urls)
 
-def sanitize_urls_parallel(strings, num_threads = num_threads_default, timeout = requests_head_timeout_default):
+def sanitize_urls_parallel(strings, num_threads = num_threads_default, timeout = requests_timeout_default, retry_after = retry_after_default, max_attempts = max_attempts_default):
     """Runs sanitize_urls() on each string in a given list in a parallelized procedure
     
     Parameters:
@@ -53,7 +80,7 @@ def sanitize_urls_parallel(strings, num_threads = num_threads_default, timeout =
     executor = ThreadPoolExecutor(n_threads)
     
     # establishing parallel sessions/processes to run the sanitize_urls method, assigned to an index number to keep track of the ordering of each result
-    futures = {executor.submit(sanitize_urls, string, timeout):index for index, string in zip(range(len(strings)), strings)}
+    futures = {executor.submit(sanitize_urls, string, timeout, retry_after, max_attempts):index for index, string in zip(range(len(strings)), strings)}
 
     responses = [] # responses are appended more or less randomly depending on when the corresponding session completes
     indices = [] # used to keep track of original ordering of each response
@@ -65,7 +92,7 @@ def sanitize_urls_parallel(strings, num_threads = num_threads_default, timeout =
     return [response for _, response in sorted(zip(indices, responses))]
     
 
-def sanitize_urls(string, timeout):
+def sanitize_urls(string, timeout, retry_after, max_attempts):
     """Extract URLs from given string (using Regex) and logs each URL's status code
     
     Parameters:
@@ -88,7 +115,7 @@ def sanitize_urls(string, timeout):
     url_output = []
     for url_string in url_strings:
         root_url = extract_root_url(url_string)
-        url_status = assign_url_status(url_string, root_url, timeout)
+        url_status = assign_url_status(url_string, root_url, timeout, retry_after, max_attempts)
         url_output.append({'URL': url_string, 'root_URL': root_url})
         url_output[-1].update(url_status)
         
@@ -115,8 +142,8 @@ def assign_string_condition(string, url_strings):
         return 'String contains multiple URLs'
 
 
-def get_url_status(url_string, timeout):
-    """Retrieves status code for the given URL
+def get_url_status(url_string, timeout, retry_after, max_attempts):
+    """Retrieves status code for the given URL, re-attempts validation of URLs returning 429, 503
     
     Parameters:
         url_string (str): URL
@@ -126,13 +153,18 @@ def get_url_status(url_string, timeout):
     """
 
     try:
-        status_code = requests.head(url_string, timeout = timeout).status_code
+        status_code = requests.get(url_string, timeout = timeout).status_code
+        num_attempts = 1
+        while status_code in (429,503) and num_attempts < max_attempts:
+            num_attempts += 1
+            time.sleep(retry_after)
+            status_code = requests.get(url_string, timeout = timeout).status_code
     except:
         return -1
 
     return status_code
 
-def assign_url_status(url_string, root_url, timeout):
+def assign_url_status(url_string, root_url, timeout, retry_after, max_attempts):
     """Retrieves status codes for the given URL and the embedded root URL
     
     Parameters:
@@ -145,14 +177,14 @@ def assign_url_status(url_string, root_url, timeout):
             'root_URL_status': status code of root URL within full URL
     """
 
-    url_status_code = get_url_status(url_string, timeout)
+    url_status_code = get_url_status(url_string, timeout, retry_after, max_attempts)
     output = {'URL_status': url_status_code}
 
     # if full URL returns 200, then we assume root URL returns 200
     if url_status_code == 200:
         root_url_status_code = 200
     else:
-        root_url_status_code = get_url_status(root_url, timeout)
+        root_url_status_code = get_url_status(root_url, timeout, retry_after, max_attempts)
     output['root_URL_status'] = root_url_status_code
 
     return output
