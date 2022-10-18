@@ -85,7 +85,7 @@ from connectors.postgres_connector import PostgresConnector
 
 class PostgresFeed(AbstractFeed):
     
-    main_key = 'id'
+    main_key = 'organization_id'
 
     main_qry = select_qry = '''
         SELECT
@@ -99,13 +99,14 @@ class PostgresFeed(AbstractFeed):
             l.latitude,
             l.longitude,
             a.address_1,
+            a.address_2,
             a.city,
             a.state_province,
             a.postal_code
         FROM organization o
         JOIN location l on l.organization_id = o.id
         JOIN address a on a.location_id = l.id
-        WHERE type = 'physical';
+        WHERE type = 'physical'
         '''
 
     def __init__(self, connector: object, query: str, column_definition: list=None, primary_key: str=None, lib_definition: list=None):
