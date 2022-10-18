@@ -1,5 +1,5 @@
 # dump files for transferring tables between postgres connections
-*.dmp
+code/steps/sanitize_urls/tmp/*.dmp
 
 .DS_Store
 # Byte-compiled / optimized / DLL files
