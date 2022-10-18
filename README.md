@@ -1,8 +1,15 @@
 # silobuster-dedupe
 
 JUPYTER-NOTEBOOK
-DONT USE test_connector!
-USE deduper_class_test
+
+## How to use
+The main files you should know about are:
+
+### build_training_data.ipynb
+
+### deduper_class_test.ipynb
+
+### deduper_train_from_file.ipynb
 
 
 Python ##########################################
