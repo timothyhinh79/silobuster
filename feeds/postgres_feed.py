@@ -109,6 +109,10 @@ class PostgresFeed(AbstractFeed):
         return cls(connector=connector, query=query, column_definition=column_definition, primary_key=primary_key)
     
     
+    @classmethod
+    def from_ocean(cls, connector, query: str, column_definition: list, primary_key: str):
+        pass
+
     @property
     def connector(self):
         return self.__connector
