@@ -80,9 +80,33 @@ sys.path.append(f'{abs_dir}feeds/')
 
 
 from abstract_feed import AbstractFeed
+from connectors.postgres_connector import PostgresConnector
 
 
 class PostgresFeed(AbstractFeed):
+    
+    main_key = 'id'
+
+    main_qry = select_qry = '''
+        SELECT
+            o.id as organization_id,
+            o.name as o_name,
+            o.description as o_description,
+            o.url as o_url,
+            l.id as location_id,
+            l.name as l_name,
+            l.description as l_description,
+            l.latitude,
+            l.longitude,
+            a.address_1,
+            a.city,
+            a.state_province,
+            a.postal_code
+        FROM organization o
+        JOIN location l on l.organization_id = o.id
+        JOIN address a on a.location_id = l.id
+        WHERE type = 'physical';
+        '''
 
     def __init__(self, connector: object, query: str, column_definition: list=None, primary_key: str=None, lib_definition: list=None):
         self.__connector = connector
@@ -92,10 +116,12 @@ class PostgresFeed(AbstractFeed):
         # self.__lib_definition = lib_definition
         self.__primary_key = primary_key
 
+
         with connector.connection.cursor(cursor_factory=extras.RealDictCursor) as cursor:
             cursor.execute(query)
             self.__raw_data = cursor.fetchall() # list of tuples
-        
+
+
         with connector.connection.cursor() as cursor:
             cursor.execute(query)
             self.__raw_data_tuples = cursor.fetchall() # list of tuples
@@ -110,9 +136,21 @@ class PostgresFeed(AbstractFeed):
     
     
     @classmethod
-    def from_ocean(cls, connector, query: str, column_definition: list, primary_key: str):
-        pass
+    def from_main(cls, query: str=None, primary_key: str=None):
+        my_conn = PostgresConnector(db='defaultdb', username='doadmin', password='AVNS_2Lh_hY8r7RVKSfLwbJM', host='silobuster-dev-db-do-user-12298230-0.b.db.ondigitalocean.com', port=25060)
+        my_qry = None
+        my_key = None    
+        if query is not None and primary_key is None:
+            raise ValueError("PostgresFeed.from_main: You passed a query without specifying a primary key. Please pass a primary key as your second argument or primary_key keyword argument.")
+        elif query is not None and primary_key is not None:
+            my_qry = query
+            my_key = primary_key
+        else:
+            my_qry = cls.main_qry
+            my_key = cls.main_key
 
+        return cls(connector=my_conn, query=my_qry, column_definition=None, primary_key=my_key)
+        
     @property
     def connector(self):
         return self.__connector
