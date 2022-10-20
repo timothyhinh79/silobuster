@@ -18,6 +18,9 @@ from pg_sanitization import *
 from sanitize_urls import get_sanitized_urls
 from sanitize_phone_nums import get_sanitized_phone_nums
 from sanitize_emails import get_sanitized_emails
+from helper_methods import positive_int
+from infokind import InfoKind
+from src2dest import Src2Dest
 
 this_module = sys.modules[__name__]
 
@@ -83,8 +86,11 @@ def main():
 
     logger = logging.getLogger()
         
-    src_db, src_conn = get_src_db(args)
-    dest_db, dest_conn = get_dest_db(args)
+    src_db, src_conn = get_db_conn(args.source_db)
+    dest_db = None
+    dest_conn = None
+    if args.dest_db:
+        dest_db, dest_conn = get_db_conn(args.dest_db)
         
     for s2d in args.source_dest_mapping:
         logger.info(f'Mapping \n{s2d}')
@@ -94,9 +100,6 @@ def main():
         
         if s2d.kind not in ['url', 'email', 'phone']:
             raise Exception(f"Unknown kind={s2d.kind}")
-        
-        key_select = ", ".join(s2d.key)
-        key_sorting_statement = get_key_sorting_statement(s2d.key)
         
         for offset in range(0, args.max_rows_to_fetch, args.batch_row_size):
             logger.info(f"Fetching from {offset}")
@@ -111,8 +114,7 @@ def main():
                 src_conn, 
                 table = s2d.source_table, 
                 column = s2d.source_column, 
-                key_select = key_select, 
-                key_sorting_statement = key_sorting_statement, 
+                keys = s2d.key,
                 batch = args.batch_row_size, 
                 offset = offset
             )   
@@ -160,29 +162,6 @@ def main():
                         sanitized_field=s2d.kind
                     ) 
                 
- 
-class InfoKind(Enum):
-    phone = "phone"
-    email = "email"
-    url = "url"
-        
-class Src2Dest(object):
-    def __init__(self, kind: InfoKind, key: List[str], source_table: str, source_column: str, dest_table: Union[str, None], dest_column: Union[str, None]):
-        self.kind = kind
-        self.key = key
-        self.source_table = source_table
-        self.source_column = source_column
-        self.dest_table = dest_table
-        self.dest_column = dest_column
-    def __str__(self):
-        return 'Src2Dest(\n  ' + pprint.pformat(self.__dict__) +')'
-        
-def positive_int(value):
-    ivalue = int(value)
-    if ivalue <= 0:
-        raise argparse.ArgumentTypeError("%s is an invalid positive int value" % value)
-    return ivalue
-    
 
 if __name__ == '__main__':
     main()

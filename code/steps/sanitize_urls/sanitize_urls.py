@@ -32,7 +32,7 @@ def get_sanitized_urls(raw_urls, keys, key_vals, source_table, source_column, in
     """
     sanitized_urls = sanitize_urls_parallel(raw_urls)
     sanitized_url_jsons = []
-    for key_vals_tuple, sanitized_url in zip(key_vals, sanitized_urls):
+    for key_vals_tuple, raw_url, sanitized_url in zip(key_vals, raw_urls, sanitized_urls):
 
         error_location_str = f"{source_table}.{source_column} with key ({', '.join( [f'{col}={val}' for col, val, in zip(keys, key_vals_tuple) ] ) })"
 
@@ -46,7 +46,10 @@ def get_sanitized_urls(raw_urls, keys, key_vals, source_table, source_column, in
                 logger.error(f"URL ({url['URL']}) returns {url['URL_status']} response in {error_location_str})")
 
         sanitized_url_str = get_sanitized_urls_as_string(sanitized_url)
-        sanitized_url_jsons.append({key:key_val for key, key_val in zip(keys, key_vals_tuple)} | {infokind: sanitized_url_str})
+
+        if sanitized_url_str != raw_url:
+            logger.debug(f"Sanitized '{raw_url}' to '{sanitized_url_str}'") 
+            sanitized_url_jsons.append({key:key_val for key, key_val in zip(keys, key_vals_tuple)} | {infokind: sanitized_url_str})
 
     return sanitized_url_jsons
 
@@ -61,6 +64,9 @@ def get_sanitized_urls_as_string(sanitized_urls_json):
     Returns:
         single string with the sanitized URL, or multiple URLs separated by a comma
     """
+    if not sanitized_urls_json['URLs']:
+        return sanitized_urls_json['raw_string']
+
     clean_urls = [url['URL'] for url in sanitized_urls_json['URLs']]
     return ', '.join(clean_urls)
 
@@ -119,7 +125,7 @@ def sanitize_urls(string, timeout, retry_after, max_attempts):
         url_output.append({'URL': url_string, 'root_URL': root_url})
         url_output[-1].update(url_status)
         
-    json_output = {'condition': condition, 'URLs': url_output}
+    json_output = {'raw_string': string, 'condition': condition, 'URLs': url_output}
     return json_output
 
 def assign_string_condition(string, url_strings):

@@ -2,18 +2,14 @@ import sqlalchemy
 from pg_transfer import dump_table, restore_table
 import json
 
-def get_src_db(args):
-    src_db = sqlalchemy.create_engine(args.source_db, echo=True)
-    src_conn = src_db.connect()
-    return src_db, src_conn
+def get_db_conn(conn_str):
+    db = sqlalchemy.create_engine(conn_str, echo=True)
+    conn = db.connect()
+    return db, conn
 
-def get_dest_db(args):
-    dest_db = None
-    dest_conn = None
-    if args.dest_db:
-        dest_db = sqlalchemy.create_engine(args.dest_db, echo=True)
-        dest_conn = dest_db.connect()
-    return dest_db, dest_conn
+def close_db(db, conn):
+    conn.close()
+    db.dispose()
 
 def get_key_sorting_statement(keys):
     key_sorting_statement = ', '.join(keys)
@@ -21,7 +17,10 @@ def get_key_sorting_statement(keys):
         key_sorting_statement = 'order by '+key_sorting_statement
     return key_sorting_statement
 
-def query_db(src_conn, table, column, key_select, key_sorting_statement, batch, offset):
+def query_db(src_conn, table, column, keys, batch, offset):
+    key_select = ", ".join(keys)
+    key_sorting_statement = get_key_sorting_statement(keys)
+
     results = src_conn.execute(
         f'''
             select
@@ -125,12 +124,13 @@ def create_dest_table(src_conn, dest_conn, source_table, dest_table, source_colu
                 DROP TABLE IF EXISTS {dest_table};
 
                 CREATE TABLE {dest_table} AS
-                SELECT '' AS {dest_column}, {source_cols_str} 
+                SELECT {source_table}_src.{source_column} AS {dest_column}, {source_cols_str} 
                 FROM {source_table}_src;
 
                 DROP TABLE {source_table}_src;
             """
         ))
+
 
     # if the source and destination databases are the same, create the destination table if different from source table
     else: 
@@ -140,7 +140,7 @@ def create_dest_table(src_conn, dest_conn, source_table, dest_table, source_colu
                     DROP TABLE IF EXISTS {dest_table};
 
                     CREATE TABLE {dest_table} AS
-                    SELECT '' AS {dest_column}, {source_cols_str} 
+                    SELECT {source_table}.{source_column} AS {dest_column}, {source_cols_str} 
                     FROM {source_table};
                 """
             ))

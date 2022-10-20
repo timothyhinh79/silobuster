@@ -13,9 +13,9 @@ def test_get_url_status():
     test_invalid_url = test_valid_url + extra_characters
     nonexistent_url = 'https://nonsenseurlthatdoesntexistz.com/'
 
-    valid_status_code = get_url_status(test_valid_url, requests_head_timeout_default)
-    invalid_status_code = get_url_status(test_invalid_url, requests_head_timeout_default)
-    nonexistent_status_code = get_url_status(nonexistent_url, requests_head_timeout_default)
+    valid_status_code = get_url_status(test_valid_url, requests_timeout_default, retry_after_default, max_attempts_default)
+    invalid_status_code = get_url_status(test_invalid_url, requests_timeout_default, retry_after_default, max_attempts_default)
+    nonexistent_status_code = get_url_status(nonexistent_url, requests_timeout_default, retry_after_default, max_attempts_default)
 
     assert valid_status_code == 200
     assert invalid_status_code == 300
@@ -33,9 +33,9 @@ def test_assign_url_status():
     root_url_1_2 = extract_root_url(test_string_1)
     root_url_3 = extract_root_url(test_string_3)
 
-    assert assign_url_status(test_string_1, root_url_1_2, requests_head_timeout_default) == {'URL_status': 200, 'root_URL_status': 200}
-    assert assign_url_status(test_string_2, root_url_1_2, requests_head_timeout_default) == {'URL_status': 300, 'root_URL_status': 200}
-    assert assign_url_status(test_string_3, root_url_3, requests_head_timeout_default) == {'URL_status': -1, 'root_URL_status': -1}
+    assert assign_url_status(test_string_1, root_url_1_2, requests_timeout_default, retry_after_default, max_attempts_default) == {'URL_status': 200, 'root_URL_status': 200}
+    assert assign_url_status(test_string_2, root_url_1_2, requests_timeout_default, retry_after_default, max_attempts_default) == {'URL_status': 300, 'root_URL_status': 200}
+    assert assign_url_status(test_string_3, root_url_3, requests_timeout_default, retry_after_default, max_attempts_default) == {'URL_status': -1, 'root_URL_status': -1}
 
 def test_assign_string_condition():
     test_string_1 = 'https://www.w3.org/Addressing/URL/url-spec.txt'
@@ -55,7 +55,7 @@ def test_assign_string_condition():
 def test_sanitize_urls_with_no_urls():
     test_string = ''
 
-    assert sanitize_urls(test_string, requests_head_timeout_default) == {'condition': 'String contains no URLs', 'URLs': []}
+    assert sanitize_urls(test_string, requests_timeout_default, retry_after_default, max_attempts_default) == {'raw_string': '', 'condition': 'String contains no URLs', 'URLs': []}
 
 def test_sanitize_urls_with_only_one_url():
     test_string_1 = 'https://www.w3.org/Addressing/URL/url-spec.txt'
@@ -63,15 +63,16 @@ def test_sanitize_urls_with_only_one_url():
     test_string_3 = 'URL Specification https://www.w3.org/Addressing/URL/url-spec.txt' # extra characters outside of URL
     test_string_4 = 'URL Specification https://www.w3.org/Addressing/URL/url-spec.txtasdf'
 
-    assert sanitize_urls(test_string_1, requests_head_timeout_default) == {'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
-    assert sanitize_urls(test_string_2, requests_head_timeout_default) == {'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'root_URL': 'https://www.w3.org', 'URL_status': 300, 'root_URL_status': 200}]}
-    assert sanitize_urls(test_string_3, requests_head_timeout_default) == {'condition': 'String is not URL but contains one', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
-    assert sanitize_urls(test_string_4, requests_head_timeout_default) == {'condition': 'String is not URL but contains one', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'root_URL': 'https://www.w3.org', 'URL_status': 300, 'root_URL_status': 200}]}
+    assert sanitize_urls(test_string_1, requests_timeout_default, retry_after_default, max_attempts_default) == {'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
+    assert sanitize_urls(test_string_2, requests_timeout_default, retry_after_default, max_attempts_default) == {'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'root_URL': 'https://www.w3.org', 'URL_status': 300, 'root_URL_status': 200}]}
+    assert sanitize_urls(test_string_3, requests_timeout_default, retry_after_default, max_attempts_default) == {'raw_string': 'URL Specification https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is not URL but contains one', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
+    assert sanitize_urls(test_string_4, requests_timeout_default, retry_after_default, max_attempts_default) == {'raw_string': 'URL Specification https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'condition': 'String is not URL but contains one', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'root_URL': 'https://www.w3.org', 'URL_status': 300, 'root_URL_status': 200}]}
 
 def test_sanitize_urls_with_multiple_URLs():
     test_string = 'https://www.w3.org/Addressing/URL/url-spec.txtasdf https://gist.github.com/dperini/729294 https://miguendes.me/how-to-check-if-a-string-is-a-valid-url-in-python'
 
-    assert sanitize_urls(test_string, requests_head_timeout_default) == {
+    assert sanitize_urls(test_string, requests_timeout_default, retry_after_default, max_attempts_default) == {
+        'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf https://gist.github.com/dperini/729294 https://miguendes.me/how-to-check-if-a-string-is-a-valid-url-in-python',
         'condition': 'String contains multiple URLs', 
         'URLs': [
             {'URL': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'root_URL': 'https://www.w3.org', 'URL_status': 300, 'root_URL_status': 200},
@@ -84,27 +85,17 @@ def test_sample_urls_from_within_service():
     urls = '''  https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program
                 https://www.kidsinmotionclinic.org
                 https://www.maxhigbee.org
-                https://www.blainefoodbank.org
-                https://www.facesnorthwest.com
-                http://squalicum.bellinghamschools.org
-                https://sehome.bellinghamschools.org
-                https://www.nv.k12.wa.us/site/default.aspx?PageType=3&DomainID=1&ModuleInstanceID=591&ViewID=047E6BE3-6D87-4130-8424-D8E4E9ED6C2A&RenderLoc=0&FlexDataID=3866&PageID=1
-                http://www.co.whatcom.wa.us/360/Health-Department
-                http://www.whatcomcounty.us/1570/Nurse-Family-Partnership-NFP
             '''  
 
-    assert sanitize_urls(urls, requests_head_timeout_default) == {'condition': 'String contains multiple URLs', 'URLs': [
-        {'URL': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'root_URL': 'https://www.mtbaker.wednet.edu', 'URL_status': 404, 'root_URL_status': 200},
-        {'URL': 'https://www.kidsinmotionclinic.org', 'root_URL': 'https://www.kidsinmotionclinic.org', 'URL_status': 301, 'root_URL_status': 301},
-        {'URL': 'https://www.maxhigbee.org', 'root_URL': 'https://www.maxhigbee.org', 'URL_status': -1, 'root_URL_status': -1},
-        {'URL': 'https://www.blainefoodbank.org', 'root_URL': 'https://www.blainefoodbank.org', 'URL_status': 200, 'root_URL_status': 200},
-        {'URL': 'https://www.facesnorthwest.com', 'root_URL': 'https://www.facesnorthwest.com', 'URL_status': -1, 'root_URL_status': -1},
-        {'URL': 'http://squalicum.bellinghamschools.org', 'root_URL': 'http://squalicum.bellinghamschools.org', 'URL_status': 403, 'root_URL_status': 403},
-        {'URL': 'https://sehome.bellinghamschools.org', 'root_URL': 'https://sehome.bellinghamschools.org', 'URL_status': 403, 'root_URL_status': 403},
-        {'URL': 'https://www.nv.k12.wa.us/site/default.aspx?PageType=3&DomainID=1&ModuleInstanceID=591&ViewID=047E6BE3-6D87-4130-8424-D8E4E9ED6C2A&RenderLoc=0&FlexDataID=3866&PageID=1', 'root_URL': 'https://www.nv.k12.wa.us', 'URL_status': 301, 'root_URL_status': 200},
-        {'URL': 'http://www.co.whatcom.wa.us/360/Health-Department', 'root_URL': 'http://www.co.whatcom.wa.us', 'URL_status': 302, 'root_URL_status': 302},
-        {'URL': 'http://www.whatcomcounty.us/1570/Nurse-Family-Partnership-NFP', 'root_URL': 'http://www.whatcomcounty.us', 'URL_status': 302, 'root_URL_status': 302}
-    ] }
+    assert sanitize_urls(urls, requests_timeout_default, retry_after_default, max_attempts_default) == {
+        'raw_string': urls,
+        'condition': 'String contains multiple URLs', 
+        'URLs': [
+            {'URL': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'root_URL': 'https://www.mtbaker.wednet.edu', 'URL_status': 404, 'root_URL_status': 200},
+            {'URL': 'https://www.kidsinmotionclinic.org', 'root_URL': 'https://www.kidsinmotionclinic.org', 'URL_status': 200, 'root_URL_status': 200},
+            {'URL': 'https://www.maxhigbee.org', 'root_URL': 'https://www.maxhigbee.org', 'URL_status': -1, 'root_URL_status': -1}
+        ] 
+    }
 
 def test_speed_of_sanitize_urls_parallel_with_all_urls_from_within_service_csv():
     within_service_df = pd.read_csv('../../../source_data/within_reach_csv/data/within_service.csv')
@@ -118,6 +109,6 @@ def test_speed_of_sanitize_urls_parallel_with_all_urls_from_within_service_csv()
     elapsed_time = start - end
     print(f'Time to process {len(urls)} urls: {elapsed_time} seconds')
     assert len(output) == len(urls)
-    assert elapsed_time < 30
+    assert elapsed_time < 60
 
 
