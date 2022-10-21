@@ -2,6 +2,16 @@ from url_regex import url_regex
 import pandas as pd
 from sanitize_urls import *
 import time
+import logging
+import sys
+
+logging.basicConfig(
+                    stream = sys.stdout, 
+                    filemode = "w",
+                    format = "%(levelname)s %(asctime)s - %(message)s", 
+                    level = logging.DEBUG)
+
+logger = logging.getLogger()
 
 # Potential Issue to investigate:
 # interestingly, http://nonsenseurlthatdoesntexistz.com/ still returns a 200 status code...
@@ -111,4 +121,45 @@ def test_speed_of_sanitize_urls_parallel_with_all_urls_from_within_service_csv()
     assert len(output) == len(urls)
     assert elapsed_time < 60
 
+def test_get_sanitized_urls_as_string():
+    urls = '''  https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program
+                https://www.kidsinmotionclinic.org
+                https://www.maxhigbee.org
+            '''  
+
+    sanitized_urls_json = {
+        'raw_string': urls,
+        'condition': 'String contains multiple URLs', 
+        'URLs': [
+            {'URL': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'root_URL': 'https://www.mtbaker.wednet.edu', 'URL_status': 404, 'root_URL_status': 200},
+            {'URL': 'https://www.kidsinmotionclinic.org', 'root_URL': 'https://www.kidsinmotionclinic.org', 'URL_status': 200, 'root_URL_status': 200},
+            {'URL': 'https://www.maxhigbee.org', 'root_URL': 'https://www.maxhigbee.org', 'URL_status': -1, 'root_URL_status': -1}
+        ] 
+    }
+    
+    urls_string = get_sanitized_urls_as_string(sanitized_urls_json)
+
+    assert urls_string == 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program, https://www.kidsinmotionclinic.org, https://www.maxhigbee.org'
+
+def test_get_sanitized_urls_for_update():
+    urls = [
+        'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program',
+        'https://www.kidsinmotionclinic.org' + ' this part should be removed'
+    ]
+
+    sanitized_urls_json = get_sanitized_urls_for_update(
+        raw_urls = urls,
+        keys = ['id'],
+        key_vals = ['1','2'],
+        source_table = 'source_tbl',
+        source_column = 'source_col',
+        infokind = 'url',
+        logger = logger
+    )
+
+    # only the unclean url should be sanitized and included in sanitized_urls_json
+    assert sanitized_urls_json == [{
+        'id': '2',
+        'url': 'https://www.kidsinmotionclinic.org'
+    }]
 

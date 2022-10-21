@@ -15,9 +15,9 @@ from email_validator import validate_email
 import pprint
 
 from pg_sanitization import *
-from sanitize_urls import get_sanitized_urls
-from sanitize_phone_nums import get_sanitized_phone_nums
-from sanitize_emails import get_sanitized_emails
+from sanitize_urls import get_sanitized_urls_for_update
+from sanitize_phone_nums import get_sanitized_phone_nums_for_update
+from sanitize_emails import get_sanitized_emails_for_update
 from helper_methods import positive_int
 from infokind import InfoKind
 from src2dest import Src2Dest
@@ -126,11 +126,11 @@ def main():
             raw_data = [result[0] for result in results]
 
             if s2d.kind == 'url': 
-                sanitized_data = get_sanitized_urls(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, infokind = s2d.kind, logger = logger)
+                sanitized_data = get_sanitized_urls_for_update(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, infokind = s2d.kind, logger = logger)
             elif s2d.kind == 'phone':
-                sanitized_data = get_sanitized_phone_nums(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, infokind = s2d.kind, logger = logger)
+                sanitized_data = get_sanitized_phone_nums_for_update(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, infokind = s2d.kind, logger = logger)
             elif s2d.kind == 'email':
-                sanitized_data = get_sanitized_emails(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, infokind = s2d.kind, logger = logger)
+                sanitized_data = get_sanitized_emails_for_update(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, infokind = s2d.kind, logger = logger)
 
             if not args.write:
                 if not dest_conn:

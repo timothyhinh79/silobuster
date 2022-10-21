@@ -14,8 +14,9 @@ requests_timeout_default = 20 # allowing 1 seconds for requests.get() to validat
 retry_after_default = 10 # of seconds to reattempt validation of URLs that initially return 429 or 503
 max_attempts_default = 3 # of maximum attempts to retrieve a valid status code for URLs initially returnning 429 or 503
 
-def get_sanitized_urls(raw_urls, keys, key_vals, source_table, source_column, infokind, logger):
+def get_sanitized_urls_for_update(raw_urls, keys, key_vals, source_table, source_column, infokind, logger):
     """Sanitizes the given raw_urls, and returns a JSON with the given keys and sanitized URLs
+       This JSON is used to generate the mapping table in Postgres for updating the raw URLs
        Also logs certain events for sub-optimal situations where the given string is not a valid URL
     
     Parameters:
