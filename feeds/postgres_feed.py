@@ -151,7 +151,43 @@ class PostgresFeed(AbstractFeed):
             my_key = cls.main_key
 
         return cls(connector=my_conn, query=my_qry, column_definition=None, primary_key=my_key)
+
+
+    @property
+    def columns(self):
+        my_columns = [key for key in self.__raw_data[0].keys()]
+        return my_columns
+
+
+    def mangle_data(self, staging_table_name: str, callback: object):
+
+        # create table
+        columns_str = ", ".join(self.columns)
+
+        columns_create_arr = [f"{s} text" for s in self.columns]
+        columns_create_str = ", ".join(columns_create_arr)
+        create_qry = f'CREATE TABLE IF NOT EXISTS {staging_table_name} ({columns_create_str})'
         
+        print (create_qry)
+
+        with self.__connector.connection.cursor() as cursor:
+            cursor.execute(create_qry)
+            
+        
+        new_data = callback(self.__raw_data)
+
+        parms_arr = ["%s" for s in self.columns]
+        parms_str = ", ".join(parms_arr)
+        insert_qry = f"INSERT INTO {staging_table_name} ({columns_str}) VALUES ({parms_str})"
+        with self.__connector.connection.cursor() as cursor:
+            for row in new_data:
+                
+                cursor.execute(insert_qry, list(row))
+            
+        return True
+            
+
+
     @property
     def connector(self):
         return self.__connector
