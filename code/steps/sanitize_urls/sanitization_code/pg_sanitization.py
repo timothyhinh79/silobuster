@@ -1,5 +1,5 @@
 import sqlalchemy
-from pg_transfer import dump_table, restore_table # used to transfer source table in source database to destination table in destination database
+from sanitization_code.pg_transfer import dump_table, restore_table # used to transfer source table in source database to destination table in destination database
 import json # json.dumps() used to insert JSON data into Postgres data table in SQL statement
 
 # gets sqlalchemy database engine and connection object for given connection string

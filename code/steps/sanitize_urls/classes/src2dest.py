@@ -1,4 +1,4 @@
-from infokind import InfoKind
+from classes.infokind import InfoKind
 from typing import List, Dict, Tuple, Union
 import pprint
 

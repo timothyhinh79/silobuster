@@ -1,6 +1,6 @@
-from url_regex import url_regex
+from sanitization_code.url_regex import url_regex
 import pandas as pd
-from sanitize_urls import *
+from sanitization_code.sanitize_urls import *
 import time
 import logging
 import sys

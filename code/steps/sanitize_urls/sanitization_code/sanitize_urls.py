@@ -4,10 +4,8 @@ from urllib.parse import urlparse # used to extract root URLs
 from concurrent.futures import as_completed
 from concurrent.futures import ThreadPoolExecutor
 import re # Regex used to identify valid URL patterns
-from url_regex import url_regex # used to identify valid URL strings
+from sanitization_code.url_regex import url_regex # used to identify valid URL strings
 import time # to allow subsequent validation attempts on URLs returning 429 or 503
-
-from helper_methods import jsonify
 
 num_threads_default = 200 # number of threads to run sanitize URLs in parallel
 requests_timeout_default = 20 # allowing 1 seconds for requests.get() to validate if a given URL exists

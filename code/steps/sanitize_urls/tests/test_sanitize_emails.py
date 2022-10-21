@@ -1,6 +1,6 @@
 import logging
 import sys
-from sanitize_emails import *
+from sanitization_code.sanitize_emails import *
 
 logging.basicConfig(
                     stream = sys.stdout, 

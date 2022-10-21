@@ -1,8 +1,7 @@
 from types import SimpleNamespace
-import sqlalchemy
-from sanitize_urls import sanitize_urls_parallel, get_sanitized_urls_as_string, get_sanitized_urls_for_update
-from sanitize_data import Src2Dest
-from pg_sanitization import *
+from sanitization_code.sanitize_urls import get_sanitized_urls_for_update
+from classes.src2dest import Src2Dest
+from sanitization_code.pg_sanitization import *
 import pytest
 import logging
 import sys

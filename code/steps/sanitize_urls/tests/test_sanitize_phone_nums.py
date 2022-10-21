@@ -1,6 +1,6 @@
 import logging
 import sys
-from sanitize_phone_nums import *
+from sanitization_code.sanitize_phone_nums import *
 
 logging.basicConfig(
                     stream = sys.stdout, 
