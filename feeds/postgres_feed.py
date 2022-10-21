@@ -157,17 +157,16 @@ class PostgresFeed(AbstractFeed):
         return my_columns
 
 
-    def mangle_data(self, staging_table_name: str, callback: object):
+    def mangle_data(self, staging_table_name: str, callback: object, delete_old_data: bool=True):
 
         # create table
         columns_str = ", ".join(self.columns)
 
         columns_create_arr = [f"{s} text" for s in self.columns]
         columns_create_str = ", ".join(columns_create_arr)
-        print (f"Creating table {staging_table_name}...")
+        print (f"Creating table ({staging_table_name})...")
         create_qry = f'CREATE TABLE IF NOT EXISTS {staging_table_name} ({columns_create_str})'
         print ("Table created")
-        print (create_qry)
 
         with self.__connector.connection.cursor() as cursor:
             cursor.execute(create_qry)
@@ -178,12 +177,27 @@ class PostgresFeed(AbstractFeed):
         parms_arr = ["%s" for s in self.columns]
         parms_str = ", ".join(parms_arr)
         insert_qry = f"INSERT INTO {staging_table_name} ({columns_str}) VALUES ({parms_str})"
+        
+        print ("Deleting previous data...")
+        if delete_old_data:
+            with self.__connector.connection.cursor() as cursor:
+                cursor.execute(f"DELETE FROM {staging_table_name}")
+                self.__connector.connection.commit()
+            
+        
         print (f"Inserting new data ({len(new_data)} rows)...")
         with self.__connector.connection.cursor() as cursor:
-            for row in new_data:
+            for count, row in enumerate(new_data):
                 
-                cursor.execute(insert_qry, list(row))
+                cursor.execute(insert_qry, list(row.values()))
                 self.__connector.connection.commit()
+
+                #print (len(new_data) // count)
+                #print (len(new_data) % count)
+                if not count == 0:
+                    if count % 20 == 0:
+                        prog = count / len(new_data)
+                        print (f"Progress: {prog}")
             
         return True
             
