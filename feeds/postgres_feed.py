@@ -79,7 +79,7 @@ sys.path.append(f'{abs_dir}connectors/')
 sys.path.append(f'{abs_dir}feeds/')
 
 
-from abstract_feed import AbstractFeed
+from feeds.abstract_feed import AbstractFeed
 from connectors.postgres_connector import PostgresConnector
 
 
