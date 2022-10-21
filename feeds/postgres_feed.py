@@ -91,11 +91,9 @@ class PostgresFeed(AbstractFeed):
         SELECT
             o.id as organization_id,
             o.name as o_name,
-            o.description as o_description,
             o.url as o_url,
             l.id as location_id,
             l.name as l_name,
-            l.description as l_description,
             l.latitude,
             l.longitude,
             a.address_1,
