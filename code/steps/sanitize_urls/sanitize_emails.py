@@ -1,7 +1,23 @@
 from email_validator import validate_email
-from helper_methods import jsonify
 
 def get_sanitized_emails_for_update(raw_emails, keys, key_vals, source_table, source_column, infokind, logger):
+    """Sanitizes the given raw_emails, and returns a JSON with the given keys and sanitized emails
+       This JSON is used to generate the mapping table in Postgres for updating the raw emails
+       Also logs cases when no valid email is found in the raw string
+    
+    Parameters:
+        raw_emails (list): array of raw email strings from table to sanitize
+        keys (list): array of column names for the keys (e.g. ID)
+        key_vals (list): array of tuples, each one have the values of each key field for a specific record
+        source_table (str): name of source table containing un-sanitized data
+        source_column (str): name of column in source table with the un-sanitized data
+        infokind (str): one of [phone, email, url]
+        logger (logging.RootLogger): logger to output messages on success of sanitization to the terminal for debugging 
+
+    Returns:
+        sanitized_email_jsons (dict): JSONs summarizing key values and sanitized emails for each record
+    """
+    
     sanitized_emails = []
     for key_vals_tuple, raw_email in zip(key_vals, raw_emails):
         try: 
@@ -19,6 +35,14 @@ def get_sanitized_emails_for_update(raw_emails, keys, key_vals, source_table, so
     return sanitized_emails
 
 def sanitize_email(raw_email):
+    """Validates if raw_email (after removing leading/trailing spaces) is a valid email. 
+
+    Parameters:
+        raw_email (str): raw email string from data table
+
+    Returns:
+         Email string if raw_email is valid, otherwise raises an error
+    """
     return validate_email(raw_email.strip(), check_deliverability=False).email
 
 
