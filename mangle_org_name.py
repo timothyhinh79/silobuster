@@ -3,6 +3,7 @@ import string
 
 # randomly remove x% of characters in name
 def random_remove(name, remove_prob):
+    if not name: return name
     randomized_name = ''
     for char in name:
         random_value = random.random()
@@ -12,6 +13,7 @@ def random_remove(name, remove_prob):
 
 # randomly replace x% of characters with another lower-case alphabetic character
 def random_replace(name, replace_prob):
+    if not name: return name
     randomized_name = ''
     for char in name:
         random_value = random.random()
