@@ -1,9 +1,13 @@
-from sanitization_code.url_regex import url_regex
 import pandas as pd
-from sanitization_code.sanitize_urls import *
 import time
 import logging
 import sys
+
+from sanitization_code.url_regex import url_regex
+from sanitization_code.url_sanitization.sanitize_urls import *
+from sanitization_code.url_sanitization.url_sanitization_params import num_threads_default, requests_timeout_default, retry_after_default, max_attempts_default
+from sanitization_code.url_sanitization.parallelize_url_sanitization import *
+from sanitization_code.url_sanitization.sanitize_url_data import *
 
 logging.basicConfig(
                     stream = sys.stdout, 

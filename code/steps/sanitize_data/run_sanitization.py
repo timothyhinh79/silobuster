@@ -7,7 +7,7 @@ import sys
 import argparse
 
 from sanitization_code.pg_sanitization import *
-from sanitization_code.sanitize_urls import get_sanitized_urls_for_update
+from sanitization_code.url_sanitization.sanitize_url_data import get_sanitized_urls_for_update
 from sanitization_code.sanitize_phone_nums import get_sanitized_phone_nums_for_update
 from sanitization_code.sanitize_emails import get_sanitized_emails_for_update
 from sanitization_code.helper_methods import positive_int

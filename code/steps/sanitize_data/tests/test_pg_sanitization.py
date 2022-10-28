@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from sanitization_code.sanitize_urls import get_sanitized_urls_for_update
+from sanitization_code.url_sanitization.sanitize_url_data import get_sanitized_urls_for_update
 from classes.src2dest import Src2Dest
 from sanitization_code.pg_sanitization import *
 import pytest
