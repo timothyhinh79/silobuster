@@ -12,6 +12,7 @@ requests_timeout_default = 20 # allowing 1 seconds for requests.get() to validat
 retry_after_default = 10 # of seconds to reattempt validation of URLs that initially return 429 or 503
 max_attempts_default = 3 # of maximum attempts to retrieve a valid status code for URLs initially returnning 429 or 503
 
+
 def get_sanitized_urls_for_update(raw_urls, keys, key_vals, source_table, source_column, infokind, logger):
     """Sanitizes the given raw_urls, and returns a JSON with the given keys and sanitized URLs
        This JSON is used to generate the mapping table in Postgres for updating the raw URLs
@@ -29,31 +30,57 @@ def get_sanitized_urls_for_update(raw_urls, keys, key_vals, source_table, source
     Returns:
         sanitized_url_jsons (dict): JSONs summarizing key values and sanitized URLs for each record
     """
-    sanitized_urls = sanitize_urls_parallel(raw_urls)
-    sanitized_url_jsons = []
-    for key_vals_tuple, raw_url, sanitized_url in zip(key_vals, raw_urls, sanitized_urls):
+    sanitized_url_jsons = sanitize_urls_parallel(raw_urls)
+    
+    rows_w_sanitized_url = []
+    for key_vals_tuple, sanitized_url_json in zip(key_vals, sanitized_url_jsons):
 
-        error_location_str = f"{source_table}.{source_column} with key ({', '.join( [f'{col}={val}' for col, val, in zip(keys, key_vals_tuple) ] ) })"
+        # for logging
+        table_row_id_str = get_error_location_str_for_logging(source_table, source_column, keys, key_vals_tuple)
 
-        if sanitized_url['condition'] != 'String is URL':
-            logger.error(f"{sanitized_url['condition']} in {error_location_str}")
-
-        for url in sanitized_url['URLs']:
-            if url['URL_status'] == -1:
-                logger.error(f"Invalid URL ({url['URL']}) found in {error_location_str})")
-            elif url['URL_status'] > 400:
-                logger.error(f"URL ({url['URL']}) returns {url['URL_status']} response in {error_location_str})")
-
-        sanitized_url_str = get_sanitized_urls_as_string(sanitized_url)
-
+        # add row if sanitization changed raw URL string, and log the change
+        raw_url = sanitized_url_json['raw_string']
+        sanitized_url_str = combine_sanitized_urls(sanitized_url_json)
         if sanitized_url_str != raw_url:
-            logger.debug(f"Sanitized '{raw_url}' to '{sanitized_url_str}'") 
-            sanitized_url_jsons.append({key:key_val for key, key_val in zip(keys, key_vals_tuple)} | {infokind: sanitized_url_str})
+            rows_w_sanitized_url.append(get_row_w_sanitized_url(sanitized_url_str, keys, key_vals_tuple, infokind))
+            log_sanitization_change(logger, raw_url, sanitized_url_str, table_row_id_str)
 
-    return sanitized_url_jsons
+        # log errors in URL sanitization
+        log_url_sanitization_errors(logger, sanitized_url_json, table_row_id_str)
 
+    return rows_w_sanitized_url
 
-def get_sanitized_urls_as_string(sanitized_urls_json):
+def get_row_w_sanitized_url(sanitized_url_str, keys, key_vals, infokind):
+    sanitized_url_json = {infokind: sanitized_url_str}
+    keys_json = {key:key_val for key, key_val in zip(keys, key_vals)}
+    combined_json = keys_json | sanitized_url_json
+    return combined_json
+
+def log_url_sanitization_errors(logger, sanitized_url_json, table_row_id_str):
+    log_url_sanitization_error(logger, sanitized_url_json['condition'], table_row_id_str)
+    log_bad_url_status_codes(logger, sanitized_url_json['URLs'], table_row_id_str)  
+
+def log_url_sanitization_error(logger, condition, table_row_id_str):
+    error_msg = f"{condition} in {table_row_id_str}"
+    logger.error(error_msg)
+
+def log_bad_url_status_codes(logger, urls_w_status, table_row_id_str):
+    for url in urls_w_status:
+        if url['URL_status'] == -1:
+            logger.error(f"Invalid URL ({url['URL']}) found in {table_row_id_str})")
+        elif url['URL_status'] > 400:
+            logger.error(f"URL ({url['URL']}) returns {url['URL_status']} response in {table_row_id_str})")
+
+def log_sanitization_change(logger, raw_url, sanitized_url_str, table_row_id_str):
+    sanitization_msg = f"Sanitized '{raw_url}' to '{sanitized_url_str}' in {table_row_id_str}"
+    logger.debug(sanitization_msg) 
+
+def get_error_location_str_for_logging(source_table, source_column, keys, key_vals):
+    key_value_pairs_str = ', '.join( [f'{col}={val}' for col, val, in zip(keys, key_vals) ] ) 
+    error_location_str = f"{source_table}.{source_column} with key ({key_value_pairs_str})"
+    return error_location_str
+
+def combine_sanitized_urls(sanitized_urls_json):
     """Extracts the sanitized URL string from JSON output of sanitize_urls_parallel(); 
         if there are multiple URLs in a record, this method combines them into a single string separated by a comma
     
@@ -81,21 +108,36 @@ def sanitize_urls_parallel(strings, num_threads = num_threads_default, timeout =
         List of JSONs returned for each string by the sanitize_urls() method 
     """
 
+    executor = setup_executor(strings, num_threads)  
+    sessions = run_executor(executor, strings, timeout, retry_after, max_attempts)
+    sanitized_urls = get_results(sessions)
+    return sanitized_urls
+    
+def setup_executor(strings, num_threads):
     n_threads = min(num_threads, len(strings))
     executor = ThreadPoolExecutor(n_threads)
-    
-    # establishing parallel sessions/processes to run the sanitize_urls method, assigned to an index number to keep track of the ordering of each result
-    futures = {executor.submit(sanitize_urls, string, timeout, retry_after, max_attempts):index for index, string in zip(range(len(strings)), strings)}
+    return executor
 
+def run_executor(executor, strings, timeout, retry_after, max_attempts):
+    sessions = {}
+
+    # establishing parallel sessions/processes to run the sanitize_urls method, assigned to an index number to keep track of the ordering of each result
+    for index, string in enumerate(strings):
+        session = executor.submit(sanitize_urls, string, timeout, retry_after, max_attempts)
+        sessions[session] = index
+
+    return sessions
+
+def get_results(sessions):
     responses = [] # responses are appended more or less randomly depending on when the corresponding session completes
     indices = [] # used to keep track of original ordering of each response
-    for future in as_completed(futures):
-        responses.append(future.result())
-        indices.append(futures[future])
+    for session in as_completed(sessions):
+        responses.append(session.result())
+        indices.append(sessions[session])
 
     # sorting the responses based on the original ordering of the corresponding strings
-    return [response for _, response in sorted(zip(indices, responses))]
-    
+    return [response for _, response in sorted(zip(indices, responses))] 
+
 
 def sanitize_urls(string, timeout, retry_after, max_attempts):
     """Extract URLs from given string (using Regex) and logs each URL's status code
@@ -105,6 +147,7 @@ def sanitize_urls(string, timeout, retry_after, max_attempts):
 
     Returns:
         json_output (dict): JSON-like object with following information:
+            raw_string (str): raw string to be sanitized
             'condition' (str): indicates if string contains URLs
             'URLs' (list): nested-JSON with following attributes on each URL:
                 'URL' (str): full URL match

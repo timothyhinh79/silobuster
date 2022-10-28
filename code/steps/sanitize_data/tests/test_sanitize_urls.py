@@ -121,7 +121,7 @@ def test_speed_of_sanitize_urls_parallel_with_all_urls_from_within_service_csv()
     assert len(output) == len(urls)
     assert elapsed_time < 60
 
-def test_get_sanitized_urls_as_string():
+def test_combine_sanitized_urls():
     urls = '''  https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program
                 https://www.kidsinmotionclinic.org
                 https://www.maxhigbee.org
@@ -137,7 +137,7 @@ def test_get_sanitized_urls_as_string():
         ] 
     }
     
-    urls_string = get_sanitized_urls_as_string(sanitized_urls_json)
+    urls_string = combine_sanitized_urls(sanitized_urls_json)
 
     assert urls_string == 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program, https://www.kidsinmotionclinic.org, https://www.maxhigbee.org'
 
