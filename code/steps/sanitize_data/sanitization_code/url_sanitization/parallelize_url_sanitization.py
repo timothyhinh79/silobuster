@@ -22,12 +22,14 @@ def sanitize_urls_parallel(strings, num_threads = num_threads_default, timeout =
     sessions = run_executor(executor, strings, timeout, retry_after, max_attempts)
     sanitized_urls = get_results(sessions)
     return sanitized_urls
-    
+
+# set up executor with a certain number of threads to run multiple sessions for sanitizing URLs
 def setup_executor(strings, num_threads):
     n_threads = min(num_threads, len(strings))
     executor = ThreadPoolExecutor(n_threads)
     return executor
 
+# run sessions to sanitize URLs
 def run_executor(executor, strings, timeout, retry_after, max_attempts):
     sessions = {}
 
@@ -38,6 +40,7 @@ def run_executor(executor, strings, timeout, retry_after, max_attempts):
 
     return sessions
 
+# extract (ordered) results from completed sessions
 def get_results(sessions):
     responses = [] # responses are appended more or less randomly depending on when the corresponding session completes
     indices = [] # used to keep track of original ordering of each response

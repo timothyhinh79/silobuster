@@ -1,8 +1,3 @@
-
-def log_url_sanitization_errors(logger, sanitized_url_json, table_row_id_str):
-    log_url_sanitization_error(logger, sanitized_url_json['condition'], table_row_id_str)
-    log_bad_url_status_codes(logger, sanitized_url_json['URLs'], table_row_id_str)  
-
 def log_url_sanitization_error(logger, condition, table_row_id_str):
     error_msg = f"{condition} in {table_row_id_str}"
     logger.error(error_msg)
@@ -22,3 +17,7 @@ def get_error_location_str_for_logging(source_table, source_column, keys, key_va
     key_value_pairs_str = ', '.join( [f'{col}={val}' for col, val, in zip(keys, key_vals) ] ) 
     error_location_str = f"{source_table}.{source_column} with key ({key_value_pairs_str})"
     return error_location_str
+
+def log_url_sanitization_errors(logger, sanitized_url_json, table_row_id_str):
+    log_url_sanitization_error(logger, sanitized_url_json['condition'], table_row_id_str)
+    log_bad_url_status_codes(logger, sanitized_url_json['URLs'], table_row_id_str)
