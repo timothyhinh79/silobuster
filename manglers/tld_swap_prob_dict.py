@@ -1,4 +1,4 @@
-tld_swap_prob_matrix = {
+tld_swap_prob_dict = {
     'com': {
         'com': 0.65,
         'org': 0.1,

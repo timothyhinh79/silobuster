@@ -1,7 +1,6 @@
 from tld import get_tld # to get domain extension (aka top-level domain or 'TLD') of URL
 import random
 from manglers.mangle_org_name import random_remove, random_replace, random_null
-from manglers.tld_swap_probability_matrix import tld_swap_prob_matrix
 
 # consider getting more extensive list of domain extensions, from data or from TLD website
 domain_extensions = ['com', 'org', 'net', 'gov', 'edu', 'us']
@@ -47,10 +46,10 @@ def mispell_url(url, remove_prob, replace_prob, null_prob):
 
     return mangled_url
 
-def change_domain_extension(url, tld_swap_prob_matrix):
+def change_domain_extension(url, tld_swap_prob_dict):
     try:
         tld = get_tld(url)
-        random_tld = select_random_tld(tld_swap_prob_matrix[tld])
+        random_tld = select_random_tld(tld_swap_prob_dict[tld])
         mangled_url = url.replace('.' + tld, '.' + random_tld)
         return mangled_url
     except:
@@ -71,9 +70,9 @@ def construct_prob_ranges(prob_dict):
     
     return prob_ranges
 
-def mangle_url(url, probs_dict, tld_swap_prob_matrix):
+def mangle_url(url, probs_dict, tld_swap_prob_dict):
 
-    mangled_url = change_domain_extension(url, tld_swap_prob_matrix) # swapping TLD first to minimize chances of creating bad URL before trying to identify the TLD..
+    mangled_url = change_domain_extension(url, tld_swap_prob_dict) # swapping TLD first to minimize chances of creating bad URL before trying to identify the TLD..
     mangled_url = remove_www(mangled_url, probs_dict['www_remove_prob'])
     mangled_url = remove_scheme(mangled_url, probs_dict['scheme_remove_prob'])
     mangled_url = remove_s_from_https(mangled_url, probs_dict['remove_s_from_https_prob'])
