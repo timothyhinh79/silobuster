@@ -46,6 +46,8 @@ def mispell_url(url, remove_prob, replace_prob, null_prob):
 
     return mangled_url
 
+# randomly swap TLD for another based on given transition probabilities (e.g. com has 10% chance of being swapped with org)
+# if TLD is not one of ['com', 'org','net','gov','edu','us'], then no mangling is performed
 def change_domain_extension(url, tld_swap_prob_dict):
     try:
         tld = get_tld(url)
@@ -55,12 +57,17 @@ def change_domain_extension(url, tld_swap_prob_dict):
     except:
         return url  
 
+# helper method for change_domain_extension
+# randomly select a TLD based on given probabilities
 def select_random_tld(prob_dict):
-    prob_ranges = construct_prob_ranges(prob_dict)
+    prob_ranges = construct_prob_ranges(prob_dict) # divides [0,1] into probability ranges for each TLD
     random_value = random.random()
     random_tld = [tld for tld, min_prob, max_prob in prob_ranges if random_value >= min_prob and random_value < max_prob]
     return random_tld[0]
 
+# helper method for change_domain_extension
+# divides (0,1) into probability ranges for each TLD for simulating random selection with weighted probabilities
+# e.g. com: 0.0 - 0.65, org: 0.65 - 0.75, net: 0.75 - 0.85,...
 def construct_prob_ranges(prob_dict):
     prob_ranges = []
     prob_val = 0
@@ -70,6 +77,7 @@ def construct_prob_ranges(prob_dict):
     
     return prob_ranges
 
+# runs every mangler method above on the URL string
 def mangle_url(url, probs_dict, tld_swap_prob_dict):
 
     mangled_url = change_domain_extension(url, tld_swap_prob_dict) # swapping TLD first to minimize chances of creating bad URL before trying to identify the TLD..
