@@ -2,7 +2,7 @@ import requests # used to validate if URLs exist
 from urllib.parse import urlparse # used to extract root URLs
 
 import re # Regex used to identify valid URL patterns
-from sanitization_code.url_regex import url_regex # used to identify valid URL strings
+from sanitization_code.url_sanitization.url_regex import url_regex # used to identify valid URL strings
 import time # to allow subsequent validation attempts on URLs returning 429 or 503
 
 def sanitize_url(string, timeout, retry_after, max_attempts):

@@ -3,7 +3,7 @@ import time
 import logging
 import sys
 
-from sanitization_code.url_regex import url_regex
+from sanitization_code.url_sanitization.url_regex import url_regex
 from sanitization_code.url_sanitization.sanitize_url import *
 from sanitization_code.url_sanitization.url_sanitization_params import num_threads_default, requests_timeout_default, retry_after_default, max_attempts_default
 from sanitization_code.url_sanitization.parallelize_url_sanitization import *
