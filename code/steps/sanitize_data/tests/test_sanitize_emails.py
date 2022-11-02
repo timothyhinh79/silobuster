@@ -11,13 +11,13 @@ logging.basicConfig(
 logger = logging.getLogger()
 
 def test_sanitize_email():
-    assert sanitize_email('   thisisanemail@gmail.com ') == 'thisisanemail@gmail.com'
-    assert sanitize_email('legitemail@yahoo.com') == 'legitemail@yahoo.com'
-    try:
-        bad_email = sanitize_email('no email here') 
-        assert False
-    except:
-        assert True
+    assert sanitize_email('   thisisanemail@gmail.com ', email_regex, logger) == 'thisisanemail@gmail.com'
+    assert sanitize_email('legitemail@yahoo.com', email_regex, logger) == 'legitemail@yahoo.com'
+    assert sanitize_email('no email here', email_regex, logger) == 'no email here'
+
+def test_sanitize_emails_when_string_has_multiple_emails():
+    string_w_multiple_emails = '   thisisanemail@gmail.com   legitemail@yahoo.com   random_text'
+    assert sanitize_email(string_w_multiple_emails, email_regex, logger) == 'thisisanemail@gmail.com, legitemail@yahoo.com'
 
 def test_get_sanitized_emails_for_update():
     emails = ['   thisisanemail@gmail.com ', 'legitemail@yahoo.com', 'no email here']
@@ -27,7 +27,6 @@ def test_get_sanitized_emails_for_update():
         key_vals = ['1','2','3'],
         source_table = 'source_tbl',
         source_column = 'source_col',
-        infokind = 'email',
         logger = logger
     )
     

@@ -11,9 +11,9 @@ logging.basicConfig(
 logger = logging.getLogger()
 
 def test_sanitize_phone_num():
-    assert sanitize_phone_num('811 111 1111') == '(811) 111 1111'
-    assert sanitize_phone_num('2222222222') == '(222) 222 2222'
-    assert sanitize_phone_num('(333) 333 3333') == '(333) 333 3333'
+    assert sanitize_phone_num('811 111 1111', phone_regex, logger) == '(811) 111 1111'
+    assert sanitize_phone_num('2222222222', phone_regex, logger) == '(222) 222 2222'
+    assert sanitize_phone_num('(333) 333 3333', phone_regex, logger) == '(333) 333 3333'
 
 def test_get_sanitized_phone_nums_for_update():
     phone_nums = ['811 111 1111', '2222222222', '(333) 333 3333']

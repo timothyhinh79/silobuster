@@ -1,6 +1,7 @@
 def log_url_sanitization_error(logger, condition, table_row_id_str):
-    error_msg = f"{condition} in {table_row_id_str}"
-    logger.error(error_msg)
+    if condition != 'String is URL':
+        error_msg = f"{condition} in {table_row_id_str}"
+        logger.error(error_msg)
 
 def log_bad_url_status_codes(logger, urls_w_status, table_row_id_str):
     for url in urls_w_status:
