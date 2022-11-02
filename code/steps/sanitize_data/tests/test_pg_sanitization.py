@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from sanitization_code.url_sanitization.sanitize_url_data import get_sanitized_urls_for_update
+from sanitization_code.url_sanitization.get_sanitized_urls_for_update import get_sanitized_urls_for_update
 from classes.src2dest import Src2Dest
 from sanitization_code.pg_sanitization import *
 import pytest
@@ -175,7 +175,6 @@ def test_update_src_data(db):
         key_vals,
         args_test.source_dest_mapping[0].source_table,
         args_test.source_dest_mapping[0].source_column,
-        'url',
         logger
     )
 
@@ -220,7 +219,6 @@ def test_update_src_data_w_mult_keys(db):
         key_vals,
         args_test_mult_keys.source_dest_mapping[0].source_table,
         args_test_mult_keys.source_dest_mapping[0].source_column,
-        'url',
         logger
     )
 
@@ -322,7 +320,6 @@ def test_update_dest_data(db):
         key_vals,
         args_test.source_dest_mapping[0].source_table,
         args_test.source_dest_mapping[0].source_column,
-        'url',
         logger
     )
 
@@ -370,7 +367,6 @@ def test_update_dest_data_w_mult_keys(db):
         key_vals,
         args_test_mult_keys.source_dest_mapping[0].source_table,
         args_test_mult_keys.source_dest_mapping[0].source_column,
-        'url',
         logger
     )
 

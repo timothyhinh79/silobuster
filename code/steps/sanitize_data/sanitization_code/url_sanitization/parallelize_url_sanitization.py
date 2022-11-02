@@ -3,7 +3,7 @@ from concurrent.futures import as_completed
 from concurrent.futures import ThreadPoolExecutor
 
 from sanitization_code.url_sanitization.url_sanitization_params import num_threads_default, requests_timeout_default, retry_after_default, max_attempts_default
-from sanitization_code.url_sanitization.sanitize_urls import sanitize_urls
+from sanitization_code.url_sanitization.sanitize_url import sanitize_url
 
 
 def sanitize_urls_parallel(strings, num_threads = num_threads_default, timeout = requests_timeout_default, retry_after = retry_after_default, max_attempts = max_attempts_default):
@@ -35,7 +35,7 @@ def run_executor(executor, strings, timeout, retry_after, max_attempts):
 
     # establishing parallel sessions/processes to run the sanitize_urls method, assigned to an index number to keep track of the ordering of each result
     for index, string in enumerate(strings):
-        session = executor.submit(sanitize_urls, string, timeout, retry_after, max_attempts)
+        session = executor.submit(sanitize_url, string, timeout, retry_after, max_attempts)
         sessions[session] = index
 
     return sessions

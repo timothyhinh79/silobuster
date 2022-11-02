@@ -5,7 +5,7 @@ import re # Regex used to identify valid URL patterns
 from sanitization_code.url_regex import url_regex # used to identify valid URL strings
 import time # to allow subsequent validation attempts on URLs returning 429 or 503
 
-def sanitize_urls(string, timeout, retry_after, max_attempts):
+def sanitize_url(string, timeout, retry_after, max_attempts):
     """Extract URLs from given string (using Regex) and logs each URL's status code
     
     Parameters:
