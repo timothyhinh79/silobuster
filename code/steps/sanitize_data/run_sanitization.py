@@ -7,7 +7,7 @@ import sys
 import argparse
 
 from sanitization_code.pg_sanitization import *
-from sanitization_code.sanitize_urls import get_sanitized_urls_for_update
+from sanitization_code.url_sanitization.get_sanitized_urls_for_update import get_sanitized_urls_for_update
 from sanitization_code.sanitize_phone_nums import get_sanitized_phone_nums_for_update
 from sanitization_code.sanitize_emails import get_sanitized_emails_for_update
 from sanitization_code.helper_methods import positive_int
@@ -91,7 +91,7 @@ def main():
         if not len(s2d.key):
             raise Exception(f"keys not defined for table {s2d.source_table}") 
         
-        if s2d.kind not in ['url', 'email', 'phone']:
+        if s2d.kind not in [InfoKind.url.value, InfoKind.email.value, InfoKind.phone.value]:
             raise Exception(f"Unknown kind={s2d.kind}")
         
         # sanitizing data in batches defined by batch-row-size
@@ -123,12 +123,12 @@ def main():
 
             # get sanitized data JSONs that contain the IDs and sanitized urls/phone_nums/emails
             # these JSONs will be used to update the raw_data in a SQL UPDATE statement
-            if s2d.kind == 'url': 
-                sanitized_data = get_sanitized_urls_for_update(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, infokind = s2d.kind, logger = logger)
-            elif s2d.kind == 'phone':
-                sanitized_data = get_sanitized_phone_nums_for_update(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, infokind = s2d.kind, logger = logger)
-            elif s2d.kind == 'email':
-                sanitized_data = get_sanitized_emails_for_update(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, infokind = s2d.kind, logger = logger)
+            if s2d.kind == InfoKind.url.value: 
+                sanitized_data = get_sanitized_urls_for_update(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, logger = logger)
+            elif s2d.kind == InfoKind.phone.value:
+                sanitized_data = get_sanitized_phone_nums_for_update(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, logger = logger)
+            elif s2d.kind == InfoKind.email.value:
+                sanitized_data = get_sanitized_emails_for_update(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, logger = logger)
 
             if not args.write:
                 # if there is not destination table/database specified, then update raw data in the source table/database with sanitized output
