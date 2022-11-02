@@ -8,6 +8,7 @@ from sanitization_code.url_sanitization.sanitize_url import *
 from sanitization_code.url_sanitization.url_sanitization_params import num_threads_default, requests_timeout_default, retry_after_default, max_attempts_default
 from sanitization_code.url_sanitization.parallelize_url_sanitization import *
 from sanitization_code.url_sanitization.get_sanitized_urls_for_update import *
+from classes.infokind import InfoKind
 
 logging.basicConfig(
                     stream = sys.stdout, 
@@ -163,6 +164,6 @@ def test_get_sanitized_urls_for_update():
     # only the unclean url should be sanitized and included in sanitized_urls_json
     assert sanitized_urls_json == [{
         'id': '2',
-        'URL': 'https://www.kidsinmotionclinic.org'
+        InfoKind.url.value: 'https://www.kidsinmotionclinic.org'
     }]
 

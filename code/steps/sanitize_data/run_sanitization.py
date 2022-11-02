@@ -91,7 +91,7 @@ def main():
         if not len(s2d.key):
             raise Exception(f"keys not defined for table {s2d.source_table}") 
         
-        if s2d.kind not in ['url', 'email', 'phone']:
+        if s2d.kind not in [InfoKind.url.value, InfoKind.email.value, InfoKind.phone.value]:
             raise Exception(f"Unknown kind={s2d.kind}")
         
         # sanitizing data in batches defined by batch-row-size
@@ -123,11 +123,11 @@ def main():
 
             # get sanitized data JSONs that contain the IDs and sanitized urls/phone_nums/emails
             # these JSONs will be used to update the raw_data in a SQL UPDATE statement
-            if s2d.kind == 'url': 
+            if s2d.kind == InfoKind.url.value: 
                 sanitized_data = get_sanitized_urls_for_update(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, infokind = s2d.kind, logger = logger)
-            elif s2d.kind == 'phone':
+            elif s2d.kind == InfoKind.phone.value:
                 sanitized_data = get_sanitized_phone_nums_for_update(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, infokind = s2d.kind, logger = logger)
-            elif s2d.kind == 'email':
+            elif s2d.kind == InfoKind.email.value:
                 sanitized_data = get_sanitized_emails_for_update(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, infokind = s2d.kind, logger = logger)
 
             if not args.write:

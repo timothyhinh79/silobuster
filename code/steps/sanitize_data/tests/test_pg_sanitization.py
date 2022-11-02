@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 from sanitization_code.url_sanitization.get_sanitized_urls_for_update import get_sanitized_urls_for_update
 from classes.src2dest import Src2Dest
+from classes.infokind import InfoKind
 from sanitization_code.pg_sanitization import *
 import pytest
 import logging
@@ -125,7 +126,7 @@ def test_generate_mapping_tbl():
     keys = args_test.source_dest_mapping[0].key
     key_schema = ', '.join([key + ' VARCHAR' for key in keys])
 
-    mapping_tbl_sql = generate_mapping_tbl(key_schema, 'url')
+    mapping_tbl_sql = generate_mapping_tbl(key_schema, InfoKind.url.value)
 
     assert mapping_tbl_sql == f"""
         DROP TABLE IF EXISTS mapping_temp;
@@ -144,7 +145,7 @@ def test_generate_mapping_tbl_w_mult_keys():
     keys = args_test_mult_keys.source_dest_mapping[0].key
     key_schema = ', '.join([key + ' VARCHAR' for key in keys])
 
-    mapping_tbl_sql = generate_mapping_tbl(key_schema, 'url')
+    mapping_tbl_sql = generate_mapping_tbl(key_schema, InfoKind.url.value)
 
     assert mapping_tbl_sql == f"""
         DROP TABLE IF EXISTS mapping_temp;
@@ -184,7 +185,7 @@ def test_update_src_data(db):
         args_test.source_dest_mapping[0].source_column, 
         args_test.source_dest_mapping[0].key, 
         sanitized_urls, 
-        'url'
+        InfoKind.url.value
     )
 
     updated_data = query_db(
@@ -228,7 +229,7 @@ def test_update_src_data_w_mult_keys(db):
         args_test_mult_keys.source_dest_mapping[0].source_column, 
         args_test_mult_keys.source_dest_mapping[0].key, 
         sanitized_urls, 
-        'url'
+        InfoKind.url.value
     )
 
     updated_data = query_db(
@@ -338,7 +339,7 @@ def test_update_dest_data(db):
         args_test.source_dest_mapping[0].dest_column, 
         args_test.source_dest_mapping[0].key, 
         sanitized_urls, 
-        sanitized_field = 'url'
+        sanitized_field = InfoKind.url.value
     )
 
     updated_data = dest_conn.execute("SELECT * FROM data_dest;").fetchall()
@@ -385,7 +386,7 @@ def test_update_dest_data_w_mult_keys(db):
         args_test_mult_keys.source_dest_mapping[0].dest_column, 
         args_test_mult_keys.source_dest_mapping[0].key, 
         sanitized_urls, 
-        sanitized_field = 'url'
+        sanitized_field = InfoKind.url.value
     )
 
     updated_data = dest_conn.execute("SELECT * FROM data_dest;").fetchall()

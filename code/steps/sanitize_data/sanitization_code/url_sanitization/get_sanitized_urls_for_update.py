@@ -1,5 +1,6 @@
 from sanitization_code.url_sanitization.parallelize_url_sanitization import sanitize_urls_parallel
 from sanitization_code.url_sanitization.url_sanitization_logging import *
+from classes.infokind import InfoKind
 
 def get_sanitized_urls_for_update(raw_urls, keys, key_vals, source_table, source_column, logger):
     """Sanitizes the given raw_urls, and returns a JSON with the given keys and sanitized URLs
@@ -46,7 +47,7 @@ def get_row_w_sanitized_url(sanitized_url_json, keys, key_vals, table_row_id_str
         return None  
 
 def get_sanitized_url_w_keys(sanitized_url_str, keys, key_vals):
-    sanitized_url_json = {'URL': sanitized_url_str}
+    sanitized_url_json = {InfoKind.url.value: sanitized_url_str}
     keys_json = {key:key_val for key, key_val in zip(keys, key_vals)}
     combined_json = keys_json | sanitized_url_json
     return combined_json
