@@ -10,7 +10,7 @@ sys.path.append(f'{abs_dir}feeds/')
 
 
 
-from connectors.abstract_connector import AbstractConnector
+from libs.connectors.abstract_connector import AbstractConnector
 
 import psycopg2
 

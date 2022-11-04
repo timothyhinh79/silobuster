@@ -16,6 +16,7 @@ The columns shape the data.
 
 You will most likely get errors if the data is not the same labels.
 
+Contact me for help: Jamey Harris jameycharris@yahoo.com
 '''
 
 import sys
@@ -31,15 +32,14 @@ import pandas_dedupe
 import csv
 import json
 
-from feeds.postgres_feed import PostgresFeed
+from libs.feeds.postgres_feed import PostgresFeed
 from libs.uuid import random_uuid
 
 
 pg_feed = PostgresFeed.from_main()
 pg_write = PostgresFeed.from_write_log()
-print(pg_feed.query)
-print (pg_feed.df.head(5))
 
+print ("Starting deduplication...")
 # The Levenshtein distance is used for fields identified as 'String'. However, it appears we 
 # can't use "has missing" with Strings. Where fields may be empty, use type of "Test" instead.
 df_final = pandas_dedupe.dedupe_dataframe(pg_feed.df, [
@@ -58,9 +58,11 @@ df_final.to_csv('deduplication_results.csv')
 
 '''
 The overall concept is to read the deduplicated data line by line and write to the db.
-Along the way, enrich the data.
-'''
+Along the way, enrich the data with specific attributes for the logs table, such as UUID ids.
 
+CLUSTER IDS: The cluster id from the deduper library is replaced with a UUID so that they can be uniquely identified.
+'''
+print ("Writing to database...")
 with open('deduplication_results.csv') as csvfile:
     reader = csv.reader(csvfile, delimiter=",")
     next(reader) # skip header row
@@ -79,8 +81,6 @@ with open('deduplication_results.csv') as csvfile:
         # Build a hash object to json
         obj = {
                 'id':                       str(uid),
-#                'job_id':                   job_id,
-#                'row_num':                 row_num,
                 'organization_id':          organization_id,
                 'organization_name':        o_name,
                 'organization_url':         o_url,
@@ -98,7 +98,6 @@ with open('deduplication_results.csv') as csvfile:
 
         }
             
-#        (job_id, iteration_id, step_name, contributor_name, log_message)
         
         pg_write.write(str(uid), str(job_id), 1, "dedupe", "test", json.dumps(obj))
 
