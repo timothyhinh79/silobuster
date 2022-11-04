@@ -5,13 +5,13 @@ JUPYTER-NOTEBOOK
 NEW
 ====
 
-### Installation Notes:
+## Installation Notes:
 
 Python3.8 is not compatible. I did not test 3.9. However, it runs on 3.10. Install Pandas. I am using 1.5.1. This should be enough to install pandas-dedupe. If not, just use the container provided in the dockerfiles. Navigate to the dockerfiles/deduper folder and edit entrypoint-deduper.sh. Uncomment out the tail -f /dev/null command and that will keep the container open so you can use it. Sorry about jupyter in this case. You can still use the terminal to label your data.
 
-### Training
+## Training
 
-# pandas-dedupe_main.ipynb
+### pandas-dedupe_main.ipynb
 
 Use this jupyter notebook file to train data. It will read from the "main" feed (you will see that in the code), which is the "organization" table. It will prompt you to label the data as
 duplicates. This will output the following files in the same directory:
@@ -19,7 +19,7 @@ duplicates. This will output the following files in the same directory:
 1. dedupe_dataframe_learned_settings
 2. dedupe_dataframe_training.json
 
-### Production
+## Production
 
 1. Copy the above files into the "deduper" folder.
 2. Navigate to the dockerfiles folder. Issue "docker-compose up -d --build" or "docker compose up -d --build", depending on your version of Docker.
