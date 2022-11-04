@@ -1,9 +1,14 @@
-from sanitization_code.url_regex import url_regex
 import pandas as pd
-from sanitization_code.sanitize_urls import *
 import time
 import logging
 import sys
+
+from sanitization_code.url_sanitization.url_regex import url_regex
+from sanitization_code.url_sanitization.sanitize_url import *
+from sanitization_code.url_sanitization.url_sanitization_params import num_threads_default, requests_timeout_default, retry_after_default, max_attempts_default
+from sanitization_code.url_sanitization.parallelize_url_sanitization import *
+from sanitization_code.url_sanitization.get_sanitized_urls_for_update import *
+from classes.infokind import InfoKind
 
 logging.basicConfig(
                     stream = sys.stdout, 
@@ -62,26 +67,26 @@ def test_assign_string_condition():
     assert assign_string_condition(test_string_3, test_string_3_matches) == 'String contains no URLs'
     assert assign_string_condition(test_string_4, test_string_4_matches) == 'String contains multiple URLs'
 
-def test_sanitize_urls_with_no_urls():
+def test_sanitize_url_with_no_urls():
     test_string = ''
 
-    assert sanitize_urls(test_string, requests_timeout_default, retry_after_default, max_attempts_default) == {'raw_string': '', 'condition': 'String contains no URLs', 'URLs': []}
+    assert sanitize_url(test_string, requests_timeout_default, retry_after_default, max_attempts_default) == {'raw_string': '', 'condition': 'String contains no URLs', 'URLs': []}
 
-def test_sanitize_urls_with_only_one_url():
+def test_sanitize_url_with_only_one_url():
     test_string_1 = 'https://www.w3.org/Addressing/URL/url-spec.txt'
     test_string_2 = 'https://www.w3.org/Addressing/URL/url-spec.txtasdf' # additional characters that invalidate full URL match
     test_string_3 = 'URL Specification https://www.w3.org/Addressing/URL/url-spec.txt' # extra characters outside of URL
     test_string_4 = 'URL Specification https://www.w3.org/Addressing/URL/url-spec.txtasdf'
 
-    assert sanitize_urls(test_string_1, requests_timeout_default, retry_after_default, max_attempts_default) == {'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
-    assert sanitize_urls(test_string_2, requests_timeout_default, retry_after_default, max_attempts_default) == {'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'root_URL': 'https://www.w3.org', 'URL_status': 300, 'root_URL_status': 200}]}
-    assert sanitize_urls(test_string_3, requests_timeout_default, retry_after_default, max_attempts_default) == {'raw_string': 'URL Specification https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is not URL but contains one', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
-    assert sanitize_urls(test_string_4, requests_timeout_default, retry_after_default, max_attempts_default) == {'raw_string': 'URL Specification https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'condition': 'String is not URL but contains one', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'root_URL': 'https://www.w3.org', 'URL_status': 300, 'root_URL_status': 200}]}
+    assert sanitize_url(test_string_1, requests_timeout_default, retry_after_default, max_attempts_default) == {'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
+    assert sanitize_url(test_string_2, requests_timeout_default, retry_after_default, max_attempts_default) == {'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'root_URL': 'https://www.w3.org', 'URL_status': 300, 'root_URL_status': 200}]}
+    assert sanitize_url(test_string_3, requests_timeout_default, retry_after_default, max_attempts_default) == {'raw_string': 'URL Specification https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is not URL but contains one', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
+    assert sanitize_url(test_string_4, requests_timeout_default, retry_after_default, max_attempts_default) == {'raw_string': 'URL Specification https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'condition': 'String is not URL but contains one', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'root_URL': 'https://www.w3.org', 'URL_status': 300, 'root_URL_status': 200}]}
 
-def test_sanitize_urls_with_multiple_URLs():
+def test_sanitize_url_with_multiple_URLs():
     test_string = 'https://www.w3.org/Addressing/URL/url-spec.txtasdf https://gist.github.com/dperini/729294 https://miguendes.me/how-to-check-if-a-string-is-a-valid-url-in-python'
 
-    assert sanitize_urls(test_string, requests_timeout_default, retry_after_default, max_attempts_default) == {
+    assert sanitize_url(test_string, requests_timeout_default, retry_after_default, max_attempts_default) == {
         'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf https://gist.github.com/dperini/729294 https://miguendes.me/how-to-check-if-a-string-is-a-valid-url-in-python',
         'condition': 'String contains multiple URLs', 
         'URLs': [
@@ -97,7 +102,7 @@ def test_sample_urls_from_within_service():
                 https://www.maxhigbee.org
             '''  
 
-    assert sanitize_urls(urls, requests_timeout_default, retry_after_default, max_attempts_default) == {
+    assert sanitize_url(urls, requests_timeout_default, retry_after_default, max_attempts_default) == {
         'raw_string': urls,
         'condition': 'String contains multiple URLs', 
         'URLs': [
@@ -121,7 +126,7 @@ def test_speed_of_sanitize_urls_parallel_with_all_urls_from_within_service_csv()
     assert len(output) == len(urls)
     assert elapsed_time < 60
 
-def test_get_sanitized_urls_as_string():
+def test_combine_sanitized_urls():
     urls = '''  https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program
                 https://www.kidsinmotionclinic.org
                 https://www.maxhigbee.org
@@ -137,7 +142,7 @@ def test_get_sanitized_urls_as_string():
         ] 
     }
     
-    urls_string = get_sanitized_urls_as_string(sanitized_urls_json)
+    urls_string = combine_sanitized_urls(sanitized_urls_json)
 
     assert urls_string == 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program, https://www.kidsinmotionclinic.org, https://www.maxhigbee.org'
 
@@ -153,13 +158,12 @@ def test_get_sanitized_urls_for_update():
         key_vals = ['1','2'],
         source_table = 'source_tbl',
         source_column = 'source_col',
-        infokind = 'url',
         logger = logger
     )
 
     # only the unclean url should be sanitized and included in sanitized_urls_json
     assert sanitized_urls_json == [{
         'id': '2',
-        'url': 'https://www.kidsinmotionclinic.org'
+        InfoKind.url.value: 'https://www.kidsinmotionclinic.org'
     }]
 
