@@ -63,7 +63,7 @@ with open('deduplication_results.csv') as csvfile:
 
     for row in reader:
         primary_key, organization_id, o_name, o_url, location_id, l_name, latitude, longitude, address_1, address_2, city, state_province, postal_code, cluster_id, confidence = row
-        
+        print (row)        
 
 
 
