@@ -87,7 +87,7 @@ class PostgresFeed(AbstractFeed):
     
     main_key = 'organization_id'
 
-    main_qry = select_qry = '''
+    main_qry = '''
         SELECT
             o.id as organization_id,
             o.name as o_name,
@@ -106,6 +106,7 @@ class PostgresFeed(AbstractFeed):
         JOIN address a on a.location_id = l.id
         WHERE type = 'physical'
         '''
+    write_log_qry = 'INSERT INTO logs (id, job_id, iteration_id, step_name, contributor_name, log_message) VALUES (%s, %s, %s, %s, %s, %s)'
 
     def __init__(self, connector: object, query: str, column_definition: list=None, primary_key: str=None, lib_definition: list=None):
         self.__connector = connector
@@ -149,6 +150,23 @@ class PostgresFeed(AbstractFeed):
             my_key = cls.main_key
 
         return cls(connector=my_conn, query=my_qry, column_definition=None, primary_key=my_key)
+
+
+    @classmethod
+    def from_write_log(cls, query: str=None):
+        my_conn = PostgresConnector(db='defaultdb', username='doadmin', password='AVNS_2Lh_hY8r7RVKSfLwbJM', host='silobuster-dev-db-do-user-12298230-0.b.db.ondigitalocean.com', port=25060)
+        my_qry = None
+        my_key = None    
+        # if query is not None and primary_key is None:
+        #     raise ValueError("PostgresFeed.from_main: You passed a query without specifying a primary key. Please pass a primary key as your second argument or primary_key keyword argument.")
+        # elif query is not None and primary_key is not None:
+        #     my_qry = query
+        #     my_key = primary_key
+        if my_qry is None:
+            cls.write_qry = cls.write_log_qry
+            # my_key = cls.main_key
+
+        return cls(connector=my_conn, query="SELECT COUNT(*) FROM logs", column_definition=None, primary_key=None)
 
 
     @property
@@ -286,3 +304,9 @@ class PostgresFeed(AbstractFeed):
 
         return new_dict
 
+
+    def write(self, *args):
+        with self.__connector.connection.cursor() as cursor:
+            cursor.execute(self.write_qry, args)
+            self.__connector.connection.commit()
+            

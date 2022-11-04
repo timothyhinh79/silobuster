@@ -29,10 +29,14 @@ if __name__ == "__main__":
 import pandas as pd
 import pandas_dedupe
 import csv
+import json
 
 from feeds.postgres_feed import PostgresFeed
+from libs.uuid import random_uuid
+
 
 pg_feed = PostgresFeed.from_main()
+pg_write = PostgresFeed.from_write_log()
 print(pg_feed.query)
 print (pg_feed.df.head(5))
 
@@ -61,9 +65,41 @@ with open('deduplication_results.csv') as csvfile:
     reader = csv.reader(csvfile, delimiter=",")
     next(reader) # skip header row
 
+    job_id = random_uuid()
+    cluster_hash = {}
+
     for row in reader:
-        primary_key, organization_id, o_name, o_url, location_id, l_name, latitude, longitude, address_1, address_2, city, state_province, postal_code, cluster_id, confidence = row
-        print (row)        
+        row_num, organization_id, o_name, o_url, location_id, l_name, latitude, longitude, address_1, address_2, city, state_province, postal_code, cluster_id, confidence = row
+#        print (row)   
+        if cluster_id not in cluster_hash:
+            cluster_hash[cluster_id] = random_uuid()
 
+        uid = random_uuid()
+        
+        # Build a hash object to json
+        obj = {
+                'id':                       str(uid),
+#                'job_id':                   job_id,
+#                'row_num':                 row_num,
+                'organization_id':          organization_id,
+                'organization_name':        o_name,
+                'organization_url':         o_url,
+                'location_id':              location_id,
+                'location_name':            l_name,
+                'latitude':                 latitude,
+                'longitude':                longitude,
+                'address_1':                address_1,
+                'address_2':                address_2,
+                'city':                     city,
+                'state_province':           state_province,
+                'postal_code':              postal_code,
+                'cluster_id':               str(cluster_hash[cluster_id]),
+                'confidence':               confidence,
 
+        }
+            
+#        (job_id, iteration_id, step_name, contributor_name, log_message)
+        
+        pg_write.write(str(uid), str(job_id), 1, "dedupe", "test", json.dumps(obj))
 
+print ("Finished job successfully!")
