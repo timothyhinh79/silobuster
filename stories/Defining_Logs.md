@@ -13,7 +13,7 @@ blob in the `log_message` field.
     "contributor_name": "string",
     "log_message": "json"
 }
-```
+``` 
 
 ### Notes on naming conventions.
 
@@ -49,7 +49,7 @@ curating or selecting a correct value quickly.
 }
 ```
 
-If we discover a use case for relating a log to other logs or fields, we can also add an array of log or field IDs to this schema. In the interest of not over engineering this, we are waiting for positive feedback for tha tuse case before implementing.
+If we discover a use case for relating a log to other logs or fields, we can also add an array of log or field IDs to this schema. In the interest of not over engineering this, we are waiting for positive feedback for that use case before implementing.
 
 ### log_message for Dedupe logs.
 
