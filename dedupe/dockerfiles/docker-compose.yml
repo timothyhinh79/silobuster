@@ -1,0 +1,25 @@
+version: '3.8'
+
+# networks:
+#   ms-network:
+#     name: ms-network
+#     driver: bridge
+
+services:
+
+  ms:
+    build:
+      context: ./deduper
+      dockerfile: Dockerfile-deduper
+    
+    container_name: deduper
+    
+    volumes:
+      - ./../deduper:/var/www/deduper
+      - ./../libs:/var/www/libs
+    # networks:
+    #   - ms-network
+    
+    env_file: ./.env
+    command: entrypoint-deduper.sh
+    # restart: always

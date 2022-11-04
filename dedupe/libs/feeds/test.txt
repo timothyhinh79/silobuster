@@ -1,0 +1,15 @@
+Build Training set for main.
+
+Using the jupyter notebook algo I wrote. Alter that to include other possible typos and what not.
+
+1. Then build a connector to write our training data to the table.
+
+2. Then another connector to pull that data for training a model in Jupyter.
+
+Train model by active labeling.
+
+
+multithreading to read at intervals from the same folder as our model and pull results to write to db.
+
+
+Consumer that would connect to a broker and consume new records for deduping.
