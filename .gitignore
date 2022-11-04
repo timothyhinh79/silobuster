@@ -2,6 +2,8 @@
 code/steps/sanitize_data/tmp/*.dmp
 
 .DS_Store
+.ipynb_checkpoints
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
