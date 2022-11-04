@@ -1,26 +1,39 @@
-# Architect Duplicates Metadata
+# Create Reports
 
 ## Assigned to:
 - github_user
 
 ## Description
-This is an architecture story. Design and document how to store meta data about matched duplicate sets.
+
+We've had eyes on what Dedupe.io (or rather PandasDedupe in this case) outputs as dedupe metadata. 
 
 ## Requirements
 
 ### Objectives
 
-- Design and document a schema for storing data about match sets as outputs from Dedupe.io.
-- This data will provide the baseline for most of our reports.
-- As much as possible this should be efficient to run. Considerations may include whether to store data in nested JSON (PostGRES) or in tables, the cost of join tables, etc.
+- Create Log table if it doesn't already exist.
+- Define the JSON shape for logging dupe data.
+- Wire up the ability to export logs from the dedupe step.
+
+The output from `pandas-dedupe` is a CSV stored at the root of the project folder where run. The logging step will include:
+- Parsing the CSV
+- Adding additional information (foreign keys for our DB, for example).
+- Writing results to the `log` table in our POC.
+
+The shape of data will be:
+
+```json
+{
+    "id": "uuid",
+    "job_id": "string",
+    "log_type": "string",
+    "log": "string"
+}
+```
 
 ### Constraints
-Make a list of the limitations/things the code can _not_ do.
-- 
 
-## Dependencies
-
-- Data from Dedupe.io to start working with.
+- Logs must remain in a consistent format.
 
 ## Resources
 Insert all the materials needed to complete this code.

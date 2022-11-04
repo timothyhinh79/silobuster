@@ -1,0 +1,69 @@
+### Log record.
+
+These are the columns in our `log` table. They cover basic data identifying
+down to the step that's generating a log. All specifics are stored in a JSON
+blob in the `log_message` field.
+
+```json
+{
+    "id": "uuid",
+    "job_id": "string",
+    "iteration_id": "string",
+    "step_name": "clean|dedupe'",
+    "contributor_name": "string",
+    "log_message": "string"
+}
+```
+
+### Notes on naming conventions.
+
+`link_entity` is table name.
+`link_id` is record Id.
+
+These field names are borrowed from HSDS 3.0 and used to maintain system wide
+consistency.
+
+### log_message for Cleaning logs.
+
+Cleaning log JSON identifies the table, record, and field this log is for. In
+other words, cleaning logs are generated at the field (aka column) level. There
+should be exactly one log per field. However, in some cases there will be
+multiple messages for a single field, hence the "prompts" array.
+
+Where possible, include a suggestion, or "prompt", that guides end users in
+curating or selecting a correct value quickly.
+
+
+```json
+{
+    "id": "string",
+    "link_entity": "string",
+    "link_id": "string",
+    "link_column": "string",
+    "prompts": [
+      {
+        "description": "string",
+        "suggested_value": "string"
+      }
+    ]
+}
+```
+
+### log_message for Dedupe logs.
+
+Dedupe records generated from Dedupe.io include a "cluster ID" that relates two
+or more records that are likely duplicates, the ID of the original record that
+was deduped, and any other information we decide to pass through. See below for
+additional information so determined :)
+
+```json
+[
+    {
+        "cluster_id": "uuid",
+        "link_entity": "string",
+        "link_id": "string",
+        "parent_entity?": "string",
+        "Parent_id?": "string"
+    }
+]
+```

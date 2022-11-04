@@ -1,4 +1,4 @@
-This is a non-standard story meant to document the devlelopment of thought around an architectural need: logging the outputs of cleaning and quality assessment steps.
+This is a non-standard story meant to document the development of thought around an architectural need: logging the outputs of cleaning and quality assessment steps.
 
 In a call between Skyler Young, Peter Bonnel and Eric Hummel, a first draft pseudo-schema in JSON was developed:
 
