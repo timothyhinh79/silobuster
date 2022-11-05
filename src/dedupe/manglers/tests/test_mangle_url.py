@@ -64,7 +64,7 @@ def test_change_domain_extension():
             if tld in url:
                 urls_with_common_tld.append(url)
 
-    mangled_urls = [manglers.mangle_url.change_domain_extension(url, manglers.tld_swap_prob_dict.tld_swap_prob_dict) for url in urls_with_common_tld]
+    mangled_urls = [manglers.mangle_url.change_domain_extension(url, manglers.mangler_parameters.tld_swap_prob_dict) for url in urls_with_common_tld]
     mangled_urls_w_diff_tld = [mangled_url for mangled_url, orig_url in zip(mangled_urls, urls_with_common_tld) if mangled_url != orig_url]
     mangled_proportion = len(mangled_urls_w_diff_tld) / len(urls_with_common_tld)
     assert mangled_proportion > 0.1 and mangled_proportion < 0.3
@@ -83,7 +83,7 @@ def test_mangle_url():
     } 
 
     # ROUGH ESTIMATE: 78% * 97% * (32% /2) * 65% * 55% * 20% = less than 1% chance of not being mangled 
-    mangled_urls = [manglers.mangle_url.mangle_url(url, url_mangling_probs_dict, manglers.tld_swap_prob_dict.tld_swap_prob_dict) for url in test_urls]
+    mangled_urls = [manglers.mangle_url.mangle_url(url, url_mangling_probs_dict, manglers.mangler_parameters.tld_swap_prob_dict) for url in test_urls]
     mangled_urls_w_diff = [mangled_url for mangled_url, orig_url in zip(mangled_urls, test_urls) if mangled_url != orig_url]
     mangled_proportion = len(mangled_urls_w_diff) / len(test_urls)
     assert mangled_proportion > 0.80

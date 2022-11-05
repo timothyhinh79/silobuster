@@ -1,3 +1,7 @@
 import manglers.mangle_url
 import manglers.mangle_org_name
-import manglers.tld_swap_prob_dict
+import manglers.mangle_address
+import manglers.mangle_country
+import manglers.mangle_region
+import manglers.mispeller
+import manglers.mangler_parameters
