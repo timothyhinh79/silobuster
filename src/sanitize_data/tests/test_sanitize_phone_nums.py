@@ -23,7 +23,6 @@ def test_get_sanitized_phone_nums_for_update():
         key_vals = ['1','2','3'],
         source_table = 'source_tbl',
         source_column = 'source_col',
-        infokind = 'phone',
         logger = logger
     )
 
