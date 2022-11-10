@@ -113,7 +113,7 @@ def test_sample_urls_from_within_service():
     }
 
 def test_speed_of_sanitize_urls_parallel_with_all_urls_from_within_service_csv():
-    within_service_df = pd.read_csv('../../../source_data/within_reach_csv/data/within_service.csv')
+    within_service_df = pd.read_csv('tests/data_for_testing/within_service.csv')
     urls = within_service_df['url'].tolist() # 139 url strings
     urls = [url if type(url) == str else '' for url in urls] # substituting empty string for NaNs
 
