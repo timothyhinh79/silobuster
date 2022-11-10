@@ -1,6 +1,6 @@
 from tld import get_tld # to get domain extension (aka top-level domain or 'TLD') of URL
 import random
-from manglers.mangle_org_name import random_remove, random_replace, random_null
+from manglers.mispeller import random_remove, random_replace, random_null
 
 # consider getting more extensive list of domain extensions, from data or from TLD website
 domain_extensions = ['com', 'org', 'net', 'gov', 'edu', 'us']
