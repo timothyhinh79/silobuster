@@ -4,6 +4,7 @@ from urllib.parse import urlparse # used to extract root URLs
 import re # Regex used to identify valid URL patterns
 from sanitization_code.url_sanitization.url_regex import url_regex # used to identify valid URL strings
 import time # to allow subsequent validation attempts on URLs returning 429 or 503
+import datetime # to timestamp when each URL was sanitized
 
 def sanitize_url(string, timeout, retry_after, max_attempts):
     """Extract URLs from given string (using Regex) and logs each URL's status code
@@ -33,7 +34,7 @@ def sanitize_url(string, timeout, retry_after, max_attempts):
         url_output.append({'URL': url_string, 'root_URL': root_url})
         url_output[-1].update(url_status)
         
-    json_output = {'raw_string': string, 'condition': condition, 'URLs': url_output}
+    json_output = {'raw_string': string, 'condition': condition, 'timestamp': datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S"), 'URLs': url_output}
     return json_output
 
 def assign_string_condition(string, url_strings):

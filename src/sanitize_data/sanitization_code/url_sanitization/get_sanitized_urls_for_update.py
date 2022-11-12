@@ -1,8 +1,9 @@
 from sanitization_code.url_sanitization.parallelize_url_sanitization import sanitize_urls_parallel
 from sanitization_code.url_sanitization.url_sanitization_logging import *
+from sanitization_code.url_sanitization.url_logger import URL_Logger
 from classes.infokind import InfoKind
 
-def get_sanitized_urls_for_update(raw_urls, keys, key_vals, source_table, source_column, logger):
+def get_sanitized_urls_for_update(raw_urls, key_vals_rows, src2dest, logger):
     """Sanitizes the given raw_urls, and returns a JSON with the given keys and sanitized URLs
        This JSON is used to generate the mapping table in Postgres for updating the raw URLs
        Also logs certain events for sub-optimal situations where the given string is not a valid URL
@@ -21,19 +22,26 @@ def get_sanitized_urls_for_update(raw_urls, keys, key_vals, source_table, source
     sanitized_url_jsons = sanitize_urls_parallel(raw_urls)
     
     rows_w_sanitized_url = []
-    for key_vals_tuple, sanitized_url_json in zip(key_vals, sanitized_url_jsons):
+    log_records = []
+    for key_vals_row, sanitized_url_json in zip(key_vals_rows, sanitized_url_jsons):
 
-        # for logging
-        table_row_id_str = get_error_location_str_for_logging(source_table, source_column, keys, key_vals_tuple)
+        # for console logging
+        table_row_id_str = get_error_location_str_for_logging(src2dest.source_table, src2dest.source_column, src2dest.key, key_vals_row)
+        
 
         # add row if sanitization changed raw URL string, and log the change
-        new_row = get_row_w_sanitized_url(sanitized_url_json, keys, key_vals_tuple, table_row_id_str, logger)
+        new_row = get_row_w_sanitized_url(sanitized_url_json, src2dest.key, key_vals_row, table_row_id_str, logger)
         if new_row: rows_w_sanitized_url.append(new_row)
 
         # log errors in URL sanitization
         log_url_sanitization_errors(logger, sanitized_url_json, table_row_id_str)
 
-    return rows_w_sanitized_url
+        # insert log record into logs table if there is an issue/error
+        url_logger = URL_Logger(sanitized_url_json, src2dest, key_vals_row)
+        log_json = url_logger.create_log_json()
+        if log_json: log_records.append(log_json)
+
+    return rows_w_sanitized_url, log_records
 
 # if sanitization actually changed the raw stirng, get JSON with sanitized URL and key values, 
 # output JSON will be inserted into a mapping table in Postgres

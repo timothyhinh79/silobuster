@@ -5,6 +5,7 @@ import logging
 import json
 import sys
 import argparse
+import datetime
 
 from sanitization_code.url_sanitization.get_sanitized_urls_for_update import get_sanitized_urls_for_update
 from sanitization_code.sanitize_phone_nums import get_sanitized_phone_nums_for_update
@@ -27,11 +28,13 @@ def main():
             [
                 {
                     "kind": "phone"|"email"|"url",
-                    "key": [ string, ...]
+                    "key": [ string, ...],
                     "source_table": string,
                     "source_column": string,
-                    "dest_table": string|null # null implies don't deposit anywhere
-                    "dest_column": string|null # null implies don't deposit anywhere
+                    "dest_table": string|null, # null implies don't deposit anywhere
+                    "dest_column": string|null, # null implies don't deposit anywhere
+                    "logging_db": "source"|"dest",
+                    "logging_table": string
                 }
             ]
             
@@ -44,7 +47,9 @@ def main():
                     "source_table": "foo",
                     "source_column": "bar",
                     "dest_table": "baz",
-                    "dest_column": "bap"
+                    "dest_column": "bap",
+                    "logging_db": "source",
+                    "logging_table": "logs"
                 }
             ]
         ''',
@@ -55,7 +60,9 @@ def main():
                 "source_table": "service_copy",
                 "source_column": "url",
                 "dest_table": "",
-                "dest_column": ""
+                "dest_column": "",
+                "logging_db": "source",
+                "logging_table": "logs"
             }
         ]
         """
@@ -67,7 +74,11 @@ def main():
     
     args = argparser.parse_args(sys.argv[1:])
     
-    args.source_dest_mapping = [ Src2Dest(**obj) for obj in json.loads(args.source_dest_mapping) ]
+    # constructing src2dest instances which will hold necessary metadata for applying the sanitization logic to data in Postgres and creating log records
+    src2dest_objs = []
+    for src2dest_map in json.loads(args.source_dest_mapping):
+        src2dest_dict = src2dest_map | {'source_conn_str': args.source_db, 'dest_conn_str': args.dest_db, 'job_timestamp': datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")} 
+        src2dest_objs.append(Src2Dest(**src2dest_dict))
         
     logging.basicConfig(
                     stream = sys.stdout, 
@@ -78,17 +89,19 @@ def main():
     logger = logging.getLogger()
     
     # for each source-dest-mapping, sanitize data in source table/database and place into dest table/database
-    for s2d in args.source_dest_mapping:
-        s2d.set_source_conn(args.source_db)
-        s2d.set_dest_conn(args.dest_db)
+    for s2d in src2dest_objs:
         
         logger.info(f'Mapping \n{s2d}')
         
+        # error handling for arguments passed into run_sanitization
         if not len(s2d.key):
             raise Exception(f"keys not defined for table {s2d.source_table}") 
         
         if s2d.kind not in [InfoKind.url.value, InfoKind.email.value, InfoKind.phone.value]:
             raise Exception(f"Unknown kind={s2d.kind}")
+
+        if s2d.logging_db not in ["source", "dest"]:
+            raise Exception('logging_db was not specified as "source" or "dest"')
         
         # sanitizing data in batches defined by batch-row-size
         for offset in range(0, args.max_rows_to_fetch, args.batch_row_size):
@@ -113,7 +126,8 @@ def main():
             # get sanitized data JSONs that contain the IDs and sanitized urls/phone_nums/emails
             # these JSONs will be used to update the raw_data in a SQL UPDATE statement
             if s2d.kind == InfoKind.url.value: 
-                sanitized_data = get_sanitized_urls_for_update(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, logger = logger)
+                sanitized_data, log_records = get_sanitized_urls_for_update(raw_data, key_vals_rows = key_vals, src2dest=s2d, logger = logger)
+                s2d.insert_log_records(log_records)
             elif s2d.kind == InfoKind.phone.value:
                 sanitized_data = get_sanitized_phone_nums_for_update(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, logger = logger)
             elif s2d.kind == InfoKind.email.value:
@@ -130,6 +144,7 @@ def main():
                     if offset == 0: 
                         s2d.create_dest_table()
                     s2d.update_dest_data(sanitized_data)
+
                 
 
 if __name__ == '__main__':
