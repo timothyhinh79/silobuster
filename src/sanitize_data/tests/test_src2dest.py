@@ -5,6 +5,7 @@ from classes.src2dest import Src2Dest
 import pytest
 import logging
 import sys
+import datetime
 
 logging.basicConfig(
                     stream = sys.stdout, 
@@ -14,8 +15,18 @@ logging.basicConfig(
 
 logger = logging.getLogger()
 
-singlekey_src2dest = Src2Dest('url', ['id'], 'data', 'url', 'data_dest', 'url')
-multikey_src2dest = Src2Dest('url', ['id', 'email'], 'data', 'url', 'data_dest', 'url')
+singlekey_src2dest = Src2Dest(kind = 'url', key = ['id'], 
+    source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+    dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+    logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+    job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+)
+multikey_src2dest = Src2Dest(kind = 'url', key = ['id', 'email'], 
+    source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+    dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+    logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+    job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")    
+)
 
 args_test = SimpleNamespace(
     source_db='postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source', 
@@ -58,9 +69,36 @@ def db():
         ('3', 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program https://www.kidsinmotionclinic.org', 'qwerty@yahoo.com', '222-222-2222'),
         ('4', 'this part should be removed: https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'asdfadf@gmail.com', '111 111 1111');
 
+        CREATE TABLE IF NOT EXISTS logs
+        (
+            id character varying(255) NOT NULL,
+            job_id character varying(255),
+            iteration_id character varying(255),
+            step_name character varying(255),
+            contributor_name character varying(255),
+            log_message json,
+            CONSTRAINT logs_pkey PRIMARY KEY (id)
+        );
+
     """
 
     src_conn.execute(sql_str)
+
+    dest_db = sqlalchemy.create_engine(args_test.dest_db)
+    dest_conn = dest_db.connect()
+
+    dest_conn.execute("""
+        CREATE TABLE IF NOT EXISTS logs
+        (
+            id character varying(255) NOT NULL,
+            job_id character varying(255),
+            iteration_id character varying(255),
+            step_name character varying(255),
+            contributor_name character varying(255),
+            log_message json,
+            CONSTRAINT logs_pkey PRIMARY KEY (id)
+        );
+    """)
 
     # closing database
     src_conn.close()
@@ -74,6 +112,7 @@ def db():
     src_conn.execute("""
         DROP TABLE IF EXISTS data;
         DROP TABLE IF EXISTS mapping_temp;
+        DROP TABLE IF EXISTS logs;
     """)
     src_conn.close()
     src_db.dispose()
@@ -83,20 +122,17 @@ def db():
     dest_conn.execute("""
         DROP TABLE IF EXISTS data_dest;
         DROP TABLE IF EXISTS mapping_temp;
+        DROP TABLE IF EXISTS logs;
     """)
     dest_conn.close()
     dest_db.dispose()
 
 def test_get_key_sorting_statement():
-    singlekey_src2dest = Src2Dest('url', ['id'], 'data', 'url', 'data_dest', 'url')
-    multikey_src2dest = Src2Dest('url', ['id', 'email'], 'data', 'url', 'data_dest', 'url')
 
     assert singlekey_src2dest.get_key_sorting_statement() == 'order by id'
     assert multikey_src2dest.get_key_sorting_statement() == 'order by id, email'
 
 def test_query_db(db):
-    singlekey_src2dest = Src2Dest('url', ['id'], 'data', 'url', 'data_dest', 'url')
-    singlekey_src2dest.set_source_conn(args_test.source_db)
 
     results = singlekey_src2dest.query_db(batch = args_test.batch_row_size, offset = 0)
 
@@ -109,8 +145,6 @@ def test_query_db(db):
 
 def test_query_db_w_mult_keys(db):
     # email is being used as second key in addition to id in args_test_mult_keys
-    multikey_src2dest = Src2Dest('url', ['id', 'email'], 'data', 'url', 'data_dest', 'url')
-    multikey_src2dest.set_source_conn(args_test_mult_keys.source_db)
 
     results = multikey_src2dest.query_db(batch = args_test_mult_keys.batch_row_size, offset = 0)
 
@@ -122,7 +156,6 @@ def test_query_db_w_mult_keys(db):
     ]
 
 def test_generate_mapping_tbl():
-    singlekey_src2dest = Src2Dest('url', ['id'], 'data', 'url', 'data_dest', 'url')
 
     mapping_tbl_sql = singlekey_src2dest.generate_mapping_tbl()
 
@@ -140,7 +173,6 @@ def test_generate_mapping_tbl():
         """
 
 def test_generate_mapping_tbl_w_mult_keys():
-    multikey_src2dest = Src2Dest('url', ['id', 'email'], 'data', 'url', 'data_dest', 'url')
 
     mapping_tbl_sql = multikey_src2dest.generate_mapping_tbl()
 
@@ -158,8 +190,6 @@ def test_generate_mapping_tbl_w_mult_keys():
         """
 
 def test_update_src_data(db):
-    singlekey_src2dest = Src2Dest('url', ['id'], 'data', 'url', 'data_dest', 'url')
-    singlekey_src2dest.set_source_conn(args_test.source_db)
 
     key_vals = ['1','2','3','4']
     raw_urls = [
@@ -169,12 +199,10 @@ def test_update_src_data(db):
         'this part should be removed: https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program'
     ]
 
-    sanitized_urls = get_sanitized_urls_for_update(
+    sanitized_urls, log_records = get_sanitized_urls_for_update(
         raw_urls,
-        args_test.source_dest_mapping[0].key,
         key_vals,
-        args_test.source_dest_mapping[0].source_table,
-        args_test.source_dest_mapping[0].source_column,
+        singlekey_src2dest,
         logger
     )
 
@@ -190,8 +218,6 @@ def test_update_src_data(db):
     ]
 
 def test_update_src_data_w_mult_keys(db):
-    multikey_src2dest = Src2Dest('url', ['id', 'email'], 'data', 'url', 'data_dest', 'url')
-    multikey_src2dest.set_source_conn(args_test_mult_keys.source_db)
     key_vals = [('1', 'asdfadf@gmail.com'), ('2', 'this string has no emails'), ('3', 'qwerty@yahoo.com'), ('4','asdfadf@gmail.com') ]
     raw_urls = [
         'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program',
@@ -200,12 +226,10 @@ def test_update_src_data_w_mult_keys(db):
         'this part should be removed: https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program'
     ]
 
-    sanitized_urls = get_sanitized_urls_for_update(
+    sanitized_urls, log_records = get_sanitized_urls_for_update(
         raw_urls,
-        args_test_mult_keys.source_dest_mapping[0].key,
         key_vals,
-        args_test_mult_keys.source_dest_mapping[0].source_table,
-        args_test_mult_keys.source_dest_mapping[0].source_column,
+        multikey_src2dest,
         logger
     )
 
@@ -222,28 +246,22 @@ def test_update_src_data_w_mult_keys(db):
 
 
 def test_get_source_cols_str_wo_suffix(db):
-    singlekey_src2dest = Src2Dest('url', ['id'], 'data', 'url', 'data_dest', 'url')
-    singlekey_src2dest.set_source_conn(args_test.source_db)
 
     source_cols_str = singlekey_src2dest.get_source_cols_str()
 
     assert source_cols_str == 'data.id,data.email,data.phone'
 
 def test_get_source_cols_str_w_suffix(db):
-    singlekey_src2dest = Src2Dest('url', ['id'], 'data', 'url', 'data_dest', 'url')
-    singlekey_src2dest.set_source_conn(args_test.source_db)
 
     source_cols_str = singlekey_src2dest.get_source_cols_str(table_suffix='_src')
 
     assert source_cols_str == 'data_src.id,data_src.email,data_src.phone'
 
 def test_create_dest_table(db):
-    singlekey_src2dest = Src2Dest('url', ['id'], 'data', 'url', 'data_dest', 'url')
-    singlekey_src2dest.set_source_conn(args_test.source_db)
-    singlekey_src2dest.set_dest_conn(args_test.dest_db)
 
     singlekey_src2dest.create_dest_table()
 
+    singlekey_src2dest._open_dest_conn()
     dest_cols = singlekey_src2dest.dest_conn.execute(f"""
         SELECT column_name
             FROM information_schema.columns
@@ -257,6 +275,8 @@ def test_create_dest_table(db):
         SELECT * FROM data_dest;
     """).fetchall()
 
+    singlekey_src2dest._close_dest_conn()
+
     # dest_tbl should be the same as the source table, but with dest_column placed first
     assert dest_tbl == [
         ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '1', 'asdfadf@gmail.com', '111 111 1111'),
@@ -266,9 +286,6 @@ def test_create_dest_table(db):
     ]
 
 def test_update_dest_data(db):
-    singlekey_src2dest = Src2Dest('url', ['id'], 'data', 'url', 'data_dest', 'url')
-    singlekey_src2dest.set_source_conn(args_test.source_db)
-    singlekey_src2dest.set_dest_conn(args_test.dest_db)
     key_vals = ['1','2','3','4']
     raw_urls = [
         'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program',
@@ -277,19 +294,19 @@ def test_update_dest_data(db):
         'this part should be removed: https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program'
     ]
 
-    sanitized_urls = get_sanitized_urls_for_update(
+    sanitized_urls, log_records = get_sanitized_urls_for_update(
         raw_urls,
-        args_test.source_dest_mapping[0].key,
         key_vals,
-        args_test.source_dest_mapping[0].source_table,
-        args_test.source_dest_mapping[0].source_column,
+        singlekey_src2dest,
         logger
     )
 
     singlekey_src2dest.create_dest_table()
     singlekey_src2dest.update_dest_data(sanitized_urls)
 
+    singlekey_src2dest._open_dest_conn()
     updated_data = singlekey_src2dest.dest_conn.execute("SELECT * FROM data_dest;").fetchall()
+    singlekey_src2dest._close_dest_conn()
 
     assert updated_data == [
         ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '1', 'asdfadf@gmail.com', '111 111 1111'), 
@@ -299,9 +316,6 @@ def test_update_dest_data(db):
     ]
 
 def test_update_dest_data_w_mult_keys(db):
-    multikey_src2dest = Src2Dest('url', ['id', 'email'], 'data', 'url', 'data_dest', 'url')
-    multikey_src2dest.set_source_conn(args_test_mult_keys.source_db)
-    multikey_src2dest.set_dest_conn(args_test_mult_keys.dest_db)
     key_vals = [('1', 'asdfadf@gmail.com'), ('2', 'this string has no emails'), ('3', 'qwerty@yahoo.com'), ('4','asdfadf@gmail.com') ]
     raw_urls = [
         'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program',
@@ -310,23 +324,68 @@ def test_update_dest_data_w_mult_keys(db):
         'this part should be removed: https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program'
     ]
 
-    sanitized_urls = get_sanitized_urls_for_update(
+    sanitized_urls, log_records = get_sanitized_urls_for_update(
         raw_urls,
-        args_test_mult_keys.source_dest_mapping[0].key,
         key_vals,
-        args_test_mult_keys.source_dest_mapping[0].source_table,
-        args_test_mult_keys.source_dest_mapping[0].source_column,
+        multikey_src2dest,
         logger
     )
 
     multikey_src2dest.create_dest_table()
     multikey_src2dest.update_dest_data(sanitized_urls)
 
+    multikey_src2dest._open_dest_conn()
     updated_data = multikey_src2dest.dest_conn.execute("SELECT * FROM data_dest;").fetchall()
+    multikey_src2dest._close_dest_conn()
 
     assert updated_data == [
         ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '1', 'asdfadf@gmail.com', '111 111 1111'), 
         ('this string has no urls', '2', 'this string has no emails', 'this string has no phone number'), 
         ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program, https://www.kidsinmotionclinic.org', '3', 'qwerty@yahoo.com', '222-222-2222'),
         ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '4', 'asdfadf@gmail.com', '111 111 1111')
+    ]
+
+def test_insert_log_records(db):
+    log_json = [
+        {
+            "id": 'test1', 
+            "job_id": 'test1',
+            "iteration_id": 1,
+            "step_name": "test1",
+            "contributor_name": "test1", 
+            "log_message": {'test1': 'test1'}
+        },
+        {
+            "id": 'test2', 
+            "job_id": 'test2',
+            "iteration_id": 2,
+            "step_name": "test2",
+            "contributor_name": "test2", 
+            "log_message": {'test2': 'test2'}
+        },
+    ]
+
+    singlekey_src2dest.insert_log_records(log_json)
+
+    singlekey_src2dest._open_dest_conn()
+    log_records = singlekey_src2dest.dest_conn.execute('SELECT * FROM logs;').fetchall()
+    singlekey_src2dest._close_dest_conn()
+
+    assert log_records == [
+        (
+            'test1', 
+            'test1',
+            '1', 
+            'test1',
+            'test1', 
+            {'test1': 'test1'}
+        ),
+        (
+            'test2', 
+            'test2',
+            '2', 
+            'test2',
+            'test2', 
+            {'test2': 'test2'}
+        )
     ]
