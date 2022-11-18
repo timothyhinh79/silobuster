@@ -6,7 +6,6 @@ import json
 import sys
 import argparse
 
-from sanitization_code.pg_sanitization import *
 from sanitization_code.url_sanitization.get_sanitized_urls_for_update import get_sanitized_urls_for_update
 from sanitization_code.sanitize_phone_nums import get_sanitized_phone_nums_for_update
 from sanitization_code.sanitize_emails import get_sanitized_emails_for_update
@@ -77,15 +76,12 @@ def main():
                     level = logging.DEBUG)
 
     logger = logging.getLogger()
-        
-    src_db, src_conn = get_db_conn(args.source_db)
-    dest_db = None
-    dest_conn = None
-    if args.dest_db:
-        dest_db, dest_conn = get_db_conn(args.dest_db)
     
     # for each source-dest-mapping, sanitize data in source table/database and place into dest table/database
     for s2d in args.source_dest_mapping:
+        s2d.set_source_conn(args.source_db)
+        s2d.set_dest_conn(args.dest_db)
+        
         logger.info(f'Mapping \n{s2d}')
         
         if not len(s2d.key):
@@ -105,14 +101,7 @@ def main():
                 ))
 
             # query data to be sanitized with the specified keys
-            results = query_db(
-                src_conn, 
-                table = s2d.source_table, 
-                column = s2d.source_column, 
-                keys = s2d.key,
-                batch = args.batch_row_size, 
-                offset = offset
-            )   
+            results = s2d.query_db(batch = args.batch_row_size, offset = offset)
             
             # if no results, break loop because we have reached the end of the data table
             if not len(results):
@@ -131,37 +120,16 @@ def main():
                 sanitized_data = get_sanitized_emails_for_update(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, logger = logger)
 
             if not args.write:
-                # if there is not destination table/database specified, then update raw data in the source table/database with sanitized output
-                if not dest_conn:
-                    update_src_data(
-                        src_conn, 
-                        source_table = s2d.source_table, 
-                        source_column = s2d.source_column, 
-                        keys = s2d.key, 
-                        sanitized_data = sanitized_data,
-                        sanitized_field=s2d.kind
-                    )
+                # if there is no destination table/database specified, then update raw data in the source table/database with sanitized output
+                if not args.dest_db:
+                    s2d.update_src_data(sanitized_data)
 
                 # if there is a destination table/database, then create the specified destination table (replacing table if it already exists)
                 # and then update that destination table
                 else:
                     if offset == 0: 
-                        create_dest_table(
-                            src_conn, 
-                            dest_conn, 
-                            source_table = s2d.source_table, 
-                            dest_table = s2d.dest_table, 
-                            source_column = s2d.source_column,
-                            dest_column = s2d.dest_column
-                        )
-                    update_dest_data(
-                        dest_conn, 
-                        dest_table = s2d.dest_table, 
-                        dest_column = s2d.dest_column, 
-                        keys = s2d.key, 
-                        sanitized_data = sanitized_data,
-                        sanitized_field=s2d.kind
-                    ) 
+                        s2d.create_dest_table()
+                    s2d.update_dest_data(sanitized_data)
                 
 
 if __name__ == '__main__':
