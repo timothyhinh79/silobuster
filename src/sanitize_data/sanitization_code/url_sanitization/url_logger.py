@@ -22,26 +22,12 @@ class URL_Logger:
     @property
     def key_vals(self):
         return self._key_vals
-
-    # determine messaging for different url status codes
-    @classmethod
-    def _report_url_status(cls, url, url_status, url_type):
-        if url_status == -1:
-            message = f"{url_type} URL {url} is invalid"
-        
-        elif url_status > 400:
-            message = f"{url_type} URL {url} returns {url_status}"
-
-        else:
-            message = f"{url_type} URL {url} is valid"
-
-        return message 
     
     # determine what status codes are valid
     # NOTE: may want to classify 403s and 406s as valid
     @classmethod
     def _valid_status(cls, status_code):
-        if status_code == -1 or status_code >= 400:
+        if status_code == -1 or (status_code >= 400 and status_code not in (403,406)):
             return False
         return True
 
