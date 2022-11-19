@@ -170,6 +170,7 @@ def test_get_sanitized_urls_for_update():
     sanitized_urls_json, log_records = get_sanitized_urls_for_update(
         raw_urls = urls,
         key_vals_rows = ['1','2'],
+        contributor_vals=['whatcom'] * 2,
         src2dest = singlekey_src2dest,
         logger = logger
     )

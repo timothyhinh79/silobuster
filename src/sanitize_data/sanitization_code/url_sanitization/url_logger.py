@@ -5,11 +5,12 @@ import sqlalchemy # to insert log record into database
 
 class URL_Logger:
 
-    def __init__(self, sanitized_url_json: dict, src2dest: Src2Dest, key_vals: tuple):
+    def __init__(self, sanitized_url_json: dict, src2dest: Src2Dest, key_vals: tuple, contributor: str):
 
         self._sanitized_url_json = sanitized_url_json
         self._src2dest = src2dest
         self._key_vals = key_vals
+        self._contributor = contributor
 
     @property
     def sanitized_url_json(self):
@@ -22,6 +23,10 @@ class URL_Logger:
     @property
     def key_vals(self):
         return self._key_vals
+
+    @property
+    def contributor(self):
+        return self._contributor
     
     # determine what status codes are valid
     # NOTE: may want to classify 403s and 406s as valid
@@ -31,18 +36,31 @@ class URL_Logger:
             return False
         return True
 
+    @classmethod
+    def _status_message(cls, status_code):
+        if cls._valid_status(status_code): return ''
+        if status_code == -1:
+            return 'generates no response'
+        else:
+            return f'returns a {status_code} status code'
+
     # construct prompt for log_message based on status code of a specific URL (and its root URL)
     @classmethod
     def _url_prompt(cls, url_status_json):
-        if not URL_Logger._valid_status(url_status_json['URL_status']) and URL_Logger._valid_status(url_status_json['root_URL_status']):
+        full_URL = url_status_json['URL']
+        root_URL = url_status_json['root_URL']
+        full_URL_status = url_status_json['URL_status']
+        root_URL_status = url_status_json['root_URL_status']
+
+        if not cls._valid_status(full_URL_status) and cls._valid_status(root_URL_status):
             return {
-                'description': f"Full URL '{url_status_json['URL']}' is not valid, but root URL '{url_status_json['root_URL']}' is valid.",
-                'suggested_value' : url_status_json['root_URL']
+                'description': f"Full URL '{full_URL}' is not valid ({cls._status_message(full_URL_status)}), but root URL '{root_URL}' is valid.",
+                'suggested_value' : root_URL
             }
 
-        elif not URL_Logger._valid_status(url_status_json['URL_status']) and not URL_Logger._valid_status(url_status_json['root_URL_status']):
+        elif not cls._valid_status(full_URL_status) and not cls._valid_status(root_URL_status):
             return {
-                'description': f"Neither full URL '{url_status_json['URL']}' or root URL '{url_status_json['root_URL']}' are valid. Please double-check URL."
+                'description': f"Neither full URL '{full_URL}' ({cls._status_message(full_URL_status)}) or root URL '{root_URL}' ({cls._status_message(root_URL_status)}) are valid. Please double-check URL."
             }
 
         else:
@@ -84,7 +102,7 @@ class URL_Logger:
         json = {
             # "id": , # is there a need for id if there's only one log message per row in the log table?
             "link_entity": f"{self.src2dest.source_table}", #?
-            "link_id": {key:key_val for key, key_val in zip(self.src2dest.key, self.key_vals)},
+            "link_id": self.key_vals[0], # assuming key_vals has only one value for the "id" field (primary key of the table)
             "link_column": self.src2dest.source_column,
             "prompts": prompts, # JSON array
         }
@@ -98,11 +116,11 @@ class URL_Logger:
         key_vals_dict = {key_col:key_val for key_col, key_val in zip(self.src2dest.key, self.key_vals)}
         
         return {
-            "id": str(uuid.uuid5(uuid.NAMESPACE_DNS, f"Table: {self.src2dest.source_table},  Row: {key_vals_dict}, Sanitization Timestamp: {self.sanitized_url_json['timestamp']}")), 
-            "job_id": str(uuid.uuid5(uuid.NAMESPACE_DNS, f"Job: sanitize_url,  Job Timestamp: {self.src2dest.job_timestamp}")), # how do we get job_id? could be generated automatically in separate task run at beginning of DAG, and then it would be passed as an argument to command to run dockerized container?
+            "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_url-{self.src2dest.source_table}-{key_vals_dict}-{self.sanitized_url_json['timestamp']}")), 
+            "job_id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_url-{self.src2dest.job_timestamp}")), # how do we get job_id? could be generated automatically in separate task run at beginning of DAG, and then it would be passed as an argument to command to run dockerized container?
             "iteration_id": 1, # how do we get iteration number? would developer pass an iteration # somewhere?
             "step_name": "sanitize_url",
-            "contributor_name": "test", # how do we get the contributor? query it from table (assuming it has contributor column)?
+            "contributor_name": self.contributor, 
             "log_message": log_message
         }
         

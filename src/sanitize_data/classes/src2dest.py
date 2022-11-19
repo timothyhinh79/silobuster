@@ -63,7 +63,7 @@ class Src2Dest(object):
         results = self.source_conn.execute(
             f'''
                 select
-                    {self.source_column}, {key_select} 
+                    {self.source_column}, contributor, {key_select}
                 from
                     {self.source_table}
                 {key_sorting_statement}

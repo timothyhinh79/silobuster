@@ -60,14 +60,15 @@ def db():
             id VARCHAR,
             url VARCHAR,
             email VARCHAR,
-            phone VARCHAR
+            phone VARCHAR,
+            contributor VARCHAR
         );
 
-        INSERT INTO data (id, url, email, phone) VALUES
-        ('1', 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'asdfadf@gmail.com', '111 111 1111'),
-        ('2', 'this string has no urls', 'this string has no emails', 'this string has no phone number'),
-        ('3', 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program https://www.kidsinmotionclinic.org', 'qwerty@yahoo.com', '222-222-2222'),
-        ('4', 'this part should be removed: https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'asdfadf@gmail.com', '111 111 1111');
+        INSERT INTO data (id, url, email, phone, contributor) VALUES
+        ('1', 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'asdfadf@gmail.com', '111 111 1111', 'whatcom'),
+        ('2', 'this string has no urls', 'this string has no emails', 'this string has no phone number', 'whatcom'),
+        ('3', 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program https://www.kidsinmotionclinic.org', 'qwerty@yahoo.com', '222-222-2222', 'whatcom'),
+        ('4', 'this part should be removed: https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'asdfadf@gmail.com', '111 111 1111', 'whatcom');
 
         CREATE TABLE IF NOT EXISTS logs
         (
@@ -137,10 +138,10 @@ def test_query_db(db):
     results = singlekey_src2dest.query_db(batch = args_test.batch_row_size, offset = 0)
 
     assert results == [
-        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '1'), 
-        ('this string has no urls', '2'), 
-        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program https://www.kidsinmotionclinic.org', '3'),
-        ('this part should be removed: https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '4')
+        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'whatcom','1'), 
+        ('this string has no urls', 'whatcom','2'), 
+        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program https://www.kidsinmotionclinic.org', 'whatcom','3'),
+        ('this part should be removed: https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'whatcom','4')
     ]
 
 def test_query_db_w_mult_keys(db):
@@ -149,10 +150,10 @@ def test_query_db_w_mult_keys(db):
     results = multikey_src2dest.query_db(batch = args_test_mult_keys.batch_row_size, offset = 0)
 
     assert results == [
-        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '1', 'asdfadf@gmail.com'), 
-        ('this string has no urls', '2', 'this string has no emails'), 
-        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program https://www.kidsinmotionclinic.org', '3', 'qwerty@yahoo.com'),
-        ('this part should be removed: https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '4', 'asdfadf@gmail.com')
+        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'whatcom','1', 'asdfadf@gmail.com'), 
+        ('this string has no urls', 'whatcom','2', 'this string has no emails'), 
+        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program https://www.kidsinmotionclinic.org', 'whatcom','3', 'qwerty@yahoo.com'),
+        ('this part should be removed: https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'whatcom','4', 'asdfadf@gmail.com')
     ]
 
 def test_generate_mapping_tbl():
@@ -198,10 +199,12 @@ def test_update_src_data(db):
         'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program https://www.kidsinmotionclinic.org',
         'this part should be removed: https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program'
     ]
+    contributor_vals = ['whatcom'] * 4
 
     sanitized_urls, log_records = get_sanitized_urls_for_update(
         raw_urls,
         key_vals,
+        contributor_vals,
         singlekey_src2dest,
         logger
     )
@@ -211,10 +214,10 @@ def test_update_src_data(db):
     updated_data = singlekey_src2dest.query_db(batch = args_test.batch_row_size, offset = 0)
 
     assert updated_data == [
-        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '1'), 
-        ('this string has no urls', '2'), 
-        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program, https://www.kidsinmotionclinic.org', '3'),
-        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '4')
+        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'whatcom','1'), 
+        ('this string has no urls', 'whatcom','2'), 
+        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program, https://www.kidsinmotionclinic.org', 'whatcom','3'),
+        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'whatcom','4')
     ]
 
 def test_update_src_data_w_mult_keys(db):
@@ -225,10 +228,12 @@ def test_update_src_data_w_mult_keys(db):
         'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program https://www.kidsinmotionclinic.org',
         'this part should be removed: https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program'
     ]
+    contributor_vals = ['whatcom'] * 4
 
     sanitized_urls, log_records = get_sanitized_urls_for_update(
         raw_urls,
         key_vals,
+        contributor_vals,
         multikey_src2dest,
         logger
     )
@@ -238,10 +243,10 @@ def test_update_src_data_w_mult_keys(db):
     updated_data = multikey_src2dest.query_db(batch = args_test_mult_keys.batch_row_size, offset = 0)
 
     assert updated_data == [
-        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '1', 'asdfadf@gmail.com'), 
-        ('this string has no urls', '2', 'this string has no emails'), 
-        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program, https://www.kidsinmotionclinic.org', '3', 'qwerty@yahoo.com'),
-        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '4', 'asdfadf@gmail.com')
+        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'whatcom','1', 'asdfadf@gmail.com'), 
+        ('this string has no urls', 'whatcom','2', 'this string has no emails'), 
+        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program, https://www.kidsinmotionclinic.org', 'whatcom','3', 'qwerty@yahoo.com'),
+        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'whatcom','4', 'asdfadf@gmail.com')
     ]
 
 
@@ -249,13 +254,13 @@ def test_get_source_cols_str_wo_suffix(db):
 
     source_cols_str = singlekey_src2dest.get_source_cols_str()
 
-    assert source_cols_str == 'data.id,data.email,data.phone'
+    assert source_cols_str == 'data.id,data.email,data.phone,data.contributor'
 
 def test_get_source_cols_str_w_suffix(db):
 
     source_cols_str = singlekey_src2dest.get_source_cols_str(table_suffix='_src')
 
-    assert source_cols_str == 'data_src.id,data_src.email,data_src.phone'
+    assert source_cols_str == 'data_src.id,data_src.email,data_src.phone,data_src.contributor'
 
 def test_create_dest_table(db):
 
@@ -269,7 +274,7 @@ def test_create_dest_table(db):
             ORDER BY ordinal_position;
     """).fetchall()
 
-    assert dest_cols == [('url',), ('id',), ('email',), ('phone',)]
+    assert dest_cols == [('url',), ('id',), ('email',), ('phone',), ('contributor',)]
 
     dest_tbl = singlekey_src2dest.dest_conn.execute(f"""
         SELECT * FROM data_dest;
@@ -279,10 +284,10 @@ def test_create_dest_table(db):
 
     # dest_tbl should be the same as the source table, but with dest_column placed first
     assert dest_tbl == [
-        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '1', 'asdfadf@gmail.com', '111 111 1111'),
-        ('this string has no urls', '2', 'this string has no emails', 'this string has no phone number'),
-        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program https://www.kidsinmotionclinic.org', '3', 'qwerty@yahoo.com', '222-222-2222'),
-        ('this part should be removed: https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '4', 'asdfadf@gmail.com', '111 111 1111')        
+        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '1', 'asdfadf@gmail.com', '111 111 1111', 'whatcom'),
+        ('this string has no urls', '2', 'this string has no emails', 'this string has no phone number', 'whatcom'),
+        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program https://www.kidsinmotionclinic.org', '3', 'qwerty@yahoo.com', '222-222-2222', 'whatcom'),
+        ('this part should be removed: https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '4', 'asdfadf@gmail.com', '111 111 1111', 'whatcom')        
     ]
 
 def test_update_dest_data(db):
@@ -293,10 +298,12 @@ def test_update_dest_data(db):
         'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program https://www.kidsinmotionclinic.org',
         'this part should be removed: https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program'
     ]
+    contributor_vals = ['whatcom'] * 4
 
     sanitized_urls, log_records = get_sanitized_urls_for_update(
         raw_urls,
         key_vals,
+        contributor_vals,
         singlekey_src2dest,
         logger
     )
@@ -309,10 +316,10 @@ def test_update_dest_data(db):
     singlekey_src2dest._close_dest_conn()
 
     assert updated_data == [
-        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '1', 'asdfadf@gmail.com', '111 111 1111'), 
-        ('this string has no urls', '2', 'this string has no emails', 'this string has no phone number'), 
-        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program, https://www.kidsinmotionclinic.org', '3', 'qwerty@yahoo.com', '222-222-2222'),
-        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '4', 'asdfadf@gmail.com', '111 111 1111')
+        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '1', 'asdfadf@gmail.com', '111 111 1111', 'whatcom'), 
+        ('this string has no urls', '2', 'this string has no emails', 'this string has no phone number', 'whatcom'), 
+        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program, https://www.kidsinmotionclinic.org', '3', 'qwerty@yahoo.com', '222-222-2222', 'whatcom'),
+        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '4', 'asdfadf@gmail.com', '111 111 1111', 'whatcom')
     ]
 
 def test_update_dest_data_w_mult_keys(db):
@@ -323,10 +330,12 @@ def test_update_dest_data_w_mult_keys(db):
         'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program https://www.kidsinmotionclinic.org',
         'this part should be removed: https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program'
     ]
+    contributor_vals = ['whatcom'] * 4
 
     sanitized_urls, log_records = get_sanitized_urls_for_update(
         raw_urls,
         key_vals,
+        contributor_vals,
         multikey_src2dest,
         logger
     )
@@ -339,10 +348,10 @@ def test_update_dest_data_w_mult_keys(db):
     multikey_src2dest._close_dest_conn()
 
     assert updated_data == [
-        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '1', 'asdfadf@gmail.com', '111 111 1111'), 
-        ('this string has no urls', '2', 'this string has no emails', 'this string has no phone number'), 
-        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program, https://www.kidsinmotionclinic.org', '3', 'qwerty@yahoo.com', '222-222-2222'),
-        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '4', 'asdfadf@gmail.com', '111 111 1111')
+        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '1', 'asdfadf@gmail.com', '111 111 1111', 'whatcom'), 
+        ('this string has no urls', '2', 'this string has no emails', 'this string has no phone number', 'whatcom'), 
+        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program, https://www.kidsinmotionclinic.org', '3', 'qwerty@yahoo.com', '222-222-2222', 'whatcom'),
+        ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', '4', 'asdfadf@gmail.com', '111 111 1111', 'whatcom')
     ]
 
 def test_insert_log_records(db):

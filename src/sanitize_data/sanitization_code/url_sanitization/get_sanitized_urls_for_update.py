@@ -3,7 +3,7 @@ from sanitization_code.url_sanitization.url_sanitization_logging import *
 from sanitization_code.url_sanitization.url_logger import URL_Logger
 from classes.infokind import InfoKind
 
-def get_sanitized_urls_for_update(raw_urls, key_vals_rows, src2dest, logger):
+def get_sanitized_urls_for_update(raw_urls, key_vals_rows, contributor_vals, src2dest, logger):
     """Sanitizes the given raw_urls, and returns a JSON with the given keys and sanitized URLs
        This JSON is used to generate the mapping table in Postgres for updating the raw URLs
        Also logs certain events for sub-optimal situations where the given string is not a valid URL
@@ -23,12 +23,11 @@ def get_sanitized_urls_for_update(raw_urls, key_vals_rows, src2dest, logger):
     
     rows_w_sanitized_url = []
     log_records = []
-    for key_vals_row, sanitized_url_json in zip(key_vals_rows, sanitized_url_jsons):
+    for contributor_val, key_vals_row, sanitized_url_json in zip(contributor_vals, key_vals_rows, sanitized_url_jsons):
 
         # for console logging
         table_row_id_str = get_error_location_str_for_logging(src2dest.source_table, src2dest.source_column, src2dest.key, key_vals_row)
         
-
         # add row if sanitization changed raw URL string, and log the change
         new_row = get_row_w_sanitized_url(sanitized_url_json, src2dest.key, key_vals_row, table_row_id_str, logger)
         if new_row: rows_w_sanitized_url.append(new_row)
@@ -37,7 +36,7 @@ def get_sanitized_urls_for_update(raw_urls, key_vals_rows, src2dest, logger):
         log_url_sanitization_errors(logger, sanitized_url_json, table_row_id_str)
 
         # insert log record into logs table if there is an issue/error
-        url_logger = URL_Logger(sanitized_url_json, src2dest, key_vals_row)
+        url_logger = URL_Logger(sanitized_url_json, src2dest, key_vals_row, contributor_val)
         log_json = url_logger.create_log_json()
         if log_json: log_records.append(log_json)
 

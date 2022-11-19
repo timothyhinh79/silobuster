@@ -120,13 +120,14 @@ def main():
             if not len(results):
                 break
 
-            key_vals = [result[1:] for result in results]
+            key_vals = [result[2:] for result in results]
+            contributor_vals = [result[1] for result in results]
             raw_data = [result[0] for result in results]
 
             # get sanitized data JSONs that contain the IDs and sanitized urls/phone_nums/emails
             # these JSONs will be used to update the raw_data in a SQL UPDATE statement
             if s2d.kind == InfoKind.url.value: 
-                sanitized_data, log_records = get_sanitized_urls_for_update(raw_data, key_vals_rows = key_vals, src2dest=s2d, logger = logger)
+                sanitized_data, log_records = get_sanitized_urls_for_update(raw_data, key_vals_rows = key_vals, contributor_vals = contributor_vals, src2dest=s2d, logger = logger)
                 s2d.insert_log_records(log_records)
             elif s2d.kind == InfoKind.phone.value:
                 sanitized_data = get_sanitized_phone_nums_for_update(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, logger = logger)
