@@ -52,19 +52,29 @@ class URL_Logger:
         full_URL_status = url_status_json['URL_status']
         root_URL_status = url_status_json['root_URL_status']
 
-        if not cls._valid_status(full_URL_status) and cls._valid_status(root_URL_status):
+        if full_URL_status in (429, 503):
             return {
-                'description': f"Full URL '{full_URL}' is not valid ({cls._status_message(full_URL_status)}), but root URL '{root_URL}' is valid.",
-                'suggested_value' : root_URL
+                'description': f"Received error code {full_URL_status} likely because too many requests were made to URL '{full_URL}' during validation. Please double-check URL."
             }
 
-        elif not cls._valid_status(full_URL_status) and not cls._valid_status(root_URL_status):
-            return {
-                'description': f"Neither full URL '{full_URL}' ({cls._status_message(full_URL_status)}) or root URL '{root_URL}' ({cls._status_message(root_URL_status)}) are valid. Please double-check URL."
-            }
+        if not cls._valid_status(full_URL_status):
+            if root_URL_status in (429, 503):
+                return {
+                    'description': f"Received error code {root_URL_status} likely because too many requests were made to URL '{root_URL}' during validation. Please double-check URL."
+                }
 
-        else:
-            return None
+            if cls._valid_status(root_URL_status):
+                return {
+                    'description': f"Full URL '{full_URL}' is not valid ({cls._status_message(full_URL_status)}), but root URL '{root_URL}' is valid.",
+                    'suggested_value' : root_URL
+                }
+
+            if not cls._valid_status(root_URL_status):
+                return {
+                    'description': f"Neither full URL '{full_URL}' ({cls._status_message(full_URL_status)}) or root URL '{root_URL}' ({cls._status_message(root_URL_status)}) are valid. Please double-check URL."
+                }
+
+        return None
 
     # determine if we need to output a log record, based on whether all URLs found in the string are valid
     def is_clean(self):
