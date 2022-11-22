@@ -7,7 +7,6 @@ import sys
 import argparse
 import datetime
 
-from sanitization_code.url_sanitization.get_sanitized_urls_for_update import get_sanitized_urls_for_update
 from sanitization_code.sanitize_phone_nums import get_sanitized_phone_nums_for_update
 from sanitization_code.sanitize_emails import get_sanitized_emails_for_update
 from sanitization_code.helper_methods import positive_int

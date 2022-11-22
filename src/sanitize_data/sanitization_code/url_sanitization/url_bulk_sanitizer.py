@@ -1,4 +1,4 @@
-from sanitization_code.url_sanitization.url_sanitization_logging import *
+from sanitization_code.url_sanitization.url_console_logging import *
 from sanitization_code.url_sanitization.url_logger import URL_Logger
 from classes.infokind import InfoKind
 from classes.multithreader import Multithreader

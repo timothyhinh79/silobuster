@@ -1,15 +1,10 @@
-import pandas as pd
-import time
+import datetime
 import logging
 import sys
+import re
 
 from sanitization_code.url_sanitization.url_regex import url_regex
-from sanitization_code.url_sanitization.sanitize_url import *
-from sanitization_code.url_sanitization.url_sanitization_params import num_threads_default, requests_timeout_default, retry_after_default, max_attempts_default
-from sanitization_code.url_sanitization.parallelize_url_sanitization import *
-from sanitization_code.url_sanitization.get_sanitized_urls_for_update import *
 from classes.src2dest import Src2Dest
-from classes.infokind import InfoKind
 
 from sanitization_code.url_sanitization.url_sanitizer import URL_Sanitizer
 
@@ -60,8 +55,8 @@ def test_assign_url_status():
     test_string_1 = 'https://www.w3.org/Addressing/URL/url-spec.txt'
     test_string_2 = 'https://www.w3.org/Addressing/URL/url-spec.txtasdf'
     test_string_3 = 'https://nonsenseurlthatdoesntexistz.com/'
-    root_url_1_2 = extract_root_url(test_string_1)
-    root_url_3 = extract_root_url(test_string_3)
+    root_url_1_2 = URL_Sanitizer.extract_root_url(test_string_1)
+    root_url_3 = URL_Sanitizer.extract_root_url(test_string_3)
 
     assert URL_Sanitizer.assign_url_status(test_string_1, root_url_1_2) == {'URL_status': 200, 'root_URL_status': 200}
     assert URL_Sanitizer.assign_url_status(test_string_2, root_url_1_2) == {'URL_status': 300, 'root_URL_status': 200}
@@ -136,62 +131,5 @@ def test_sample_urls_from_within_service():
             {'URL': 'https://www.maxhigbee.org', 'root_URL': 'https://www.maxhigbee.org', 'URL_status': -1, 'root_URL_status': -1}
         ] 
     }
-
-# def test_speed_of_sanitize_urls_parallel_with_all_urls_from_within_service_csv():
-#     within_service_df = pd.read_csv('tests/data_for_testing/within_service.csv')
-#     urls = within_service_df['url'].tolist() # 139 url strings
-#     urls = [url if type(url) == str else '' for url in urls] # substituting empty string for NaNs
-
-#     start = time.time()
-#     output = sanitize_urls_parallel(urls, 200)
-#     end = time.time()
-
-#     elapsed_time = start - end
-#     print(f'Time to process {len(urls)} urls: {elapsed_time} seconds')
-#     assert len(output) == len(urls)
-#     assert elapsed_time < 60
-
-# def test_combine_sanitized_urls():
-#     urls = '''  https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program
-#                 https://www.kidsinmotionclinic.org
-#                 https://www.maxhigbee.org
-#             '''  
-
-#     sanitized_urls_json = {
-#         'raw_string': urls,
-#         'condition': 'String contains multiple URLs', 
-#         'URLs': [
-#             {'URL': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'root_URL': 'https://www.mtbaker.wednet.edu', 'URL_status': 404, 'root_URL_status': 200},
-#             {'URL': 'https://www.kidsinmotionclinic.org', 'root_URL': 'https://www.kidsinmotionclinic.org', 'URL_status': 200, 'root_URL_status': 200},
-#             {'URL': 'https://www.maxhigbee.org', 'root_URL': 'https://www.maxhigbee.org', 'URL_status': -1, 'root_URL_status': -1}
-#         ] 
-#     }
-    
-#     urls_string = combine_sanitized_urls(sanitized_urls_json)
-
-#     assert urls_string == 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program, https://www.kidsinmotionclinic.org, https://www.maxhigbee.org'
-
-# def test_get_sanitized_urls_for_update():
-#     urls = [
-#         'https://www.kidsinmotionclinic.org',
-#         'https://www.kidsinmotionclinic.org' + ' this part should be removed'
-#     ]
-
-#     sanitized_urls_json, log_records = get_sanitized_urls_for_update(
-#         raw_urls = urls,
-#         key_vals_rows = ['1','2'],
-#         contributor_vals=['whatcom'] * 2,
-#         src2dest = singlekey_src2dest,
-#         logger = logger
-#     )
-
-#     # only the unclean url should be sanitized and included in sanitized_urls_json
-#     assert sanitized_urls_json == [{
-#         'id': '2',
-#         InfoKind.url.value: 'https://www.kidsinmotionclinic.org'
-#     }]
-    
-#     assert len(log_records) == 1
-#     assert log_records[0]['step_name'] == 'sanitize_url'
 
 

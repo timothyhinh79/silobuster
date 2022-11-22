@@ -3,7 +3,6 @@ from sanitization_code.url_sanitization.url_bulk_sanitizer import URL_BulkSaniti
 import datetime
 import logging
 import sys
-import uuid
 from classes.infokind import InfoKind
 
 singlekey_src2dest = Src2Dest(kind = 'url', key = ['id'], 

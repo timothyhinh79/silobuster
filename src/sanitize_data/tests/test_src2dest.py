@@ -1,11 +1,11 @@
 import sqlalchemy
 from types import SimpleNamespace
-from sanitization_code.url_sanitization.get_sanitized_urls_for_update import get_sanitized_urls_for_update
 from classes.src2dest import Src2Dest
 import pytest
 import logging
 import sys
 import datetime
+from sanitization_code.url_sanitization.url_bulk_sanitizer import URL_BulkSanitizer
 
 logging.basicConfig(
                     stream = sys.stdout, 
@@ -192,7 +192,7 @@ def test_generate_mapping_tbl_w_mult_keys():
 
 def test_update_src_data(db):
 
-    key_vals = ['1','2','3','4']
+    key_vals = [('1',),('2',),('3',),('4',)]
     raw_urls = [
         'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program',
         'this string has no urls', 
@@ -201,13 +201,12 @@ def test_update_src_data(db):
     ]
     contributor_vals = ['whatcom'] * 4
 
-    sanitized_urls, log_records = get_sanitized_urls_for_update(
-        raw_urls,
-        key_vals,
-        contributor_vals,
-        singlekey_src2dest,
-        logger
-    )
+    sanitizer = URL_BulkSanitizer(strings = raw_urls,
+                                  key_val_rows= key_vals,
+                                  contributor_values=contributor_vals,
+                                  src2dest = singlekey_src2dest,
+                                  logger = logger)
+    sanitized_urls, log_records = sanitizer.get_jsons_for_update()
 
     singlekey_src2dest.update_src_data(sanitized_urls)
 
@@ -230,13 +229,12 @@ def test_update_src_data_w_mult_keys(db):
     ]
     contributor_vals = ['whatcom'] * 4
 
-    sanitized_urls, log_records = get_sanitized_urls_for_update(
-        raw_urls,
-        key_vals,
-        contributor_vals,
-        multikey_src2dest,
-        logger
-    )
+    sanitizer = URL_BulkSanitizer(strings = raw_urls,
+                                  key_val_rows= key_vals,
+                                  contributor_values=contributor_vals,
+                                  src2dest = multikey_src2dest,
+                                  logger = logger)
+    sanitized_urls, log_records = sanitizer.get_jsons_for_update()
 
     multikey_src2dest.update_src_data(sanitized_urls)
 
@@ -291,7 +289,7 @@ def test_create_dest_table(db):
     ]
 
 def test_update_dest_data(db):
-    key_vals = ['1','2','3','4']
+    key_vals = [('1',),('2',),('3',),('4',)]
     raw_urls = [
         'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program',
         'this string has no urls', 
@@ -300,13 +298,12 @@ def test_update_dest_data(db):
     ]
     contributor_vals = ['whatcom'] * 4
 
-    sanitized_urls, log_records = get_sanitized_urls_for_update(
-        raw_urls,
-        key_vals,
-        contributor_vals,
-        singlekey_src2dest,
-        logger
-    )
+    sanitizer = URL_BulkSanitizer(strings = raw_urls,
+                                  key_val_rows= key_vals,
+                                  contributor_values=contributor_vals,
+                                  src2dest = singlekey_src2dest,
+                                  logger = logger)
+    sanitized_urls, log_records = sanitizer.get_jsons_for_update()
 
     singlekey_src2dest.create_dest_table()
     singlekey_src2dest.update_dest_data(sanitized_urls)
@@ -332,13 +329,12 @@ def test_update_dest_data_w_mult_keys(db):
     ]
     contributor_vals = ['whatcom'] * 4
 
-    sanitized_urls, log_records = get_sanitized_urls_for_update(
-        raw_urls,
-        key_vals,
-        contributor_vals,
-        multikey_src2dest,
-        logger
-    )
+    sanitizer = URL_BulkSanitizer(strings = raw_urls,
+                                  key_val_rows= key_vals,
+                                  contributor_values=contributor_vals,
+                                  src2dest = multikey_src2dest,
+                                  logger = logger)
+    sanitized_urls, log_records = sanitizer.get_jsons_for_update()
 
     multikey_src2dest.create_dest_table()
     multikey_src2dest.update_dest_data(sanitized_urls)

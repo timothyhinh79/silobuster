@@ -149,7 +149,7 @@ def test_create_log_message():
     url_logger_clean = URL_Logger(sanitized_url_json_clean, singlekey_src2dest, key_vals, contributor='whatcom')
 
     url_prompts = url_logger_clean.create_url_prompts()
-    prompts = [{'description': url_logger_clean.create_message(url_prompts), 'suggested_value': ''}] + url_prompts
+    prompts = [{'description': url_logger_clean.create_message(url_prompts)}] + url_prompts
     
     assert url_logger_clean.create_log_message() == {
             "link_entity": f"{singlekey_src2dest.source_table}", #?
