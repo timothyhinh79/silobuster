@@ -107,7 +107,7 @@ class URL_Logger:
     def create_log_message(self):
         url_prompts = self.create_url_prompts()
         message = self.create_message(url_prompts)
-        prompts = [{'description': message, 'suggested_value': ''}] + url_prompts
+        prompts = [{'description': message}] + url_prompts
 
         json = {
             # "id": , # is there a need for id if there's only one log message per row in the log table?
