@@ -7,7 +7,7 @@ import sys
 import argparse
 import datetime
 
-from sanitization_code.url_sanitization.get_sanitized_urls_for_update import get_sanitized_urls_for_update
+from sanitization_code.url_sanitization import URL_BulkSanitizer
 from sanitization_code.sanitize_phone_nums import get_sanitized_phone_nums_for_update
 from sanitization_code.sanitize_emails import get_sanitized_emails_for_update
 from sanitization_code.helper_methods import positive_int
@@ -120,13 +120,19 @@ def main():
             if not len(results):
                 break
 
-            key_vals = [result[1:] for result in results]
+            key_vals = [result[2:] for result in results]
+            contributor_vals = [result[1] for result in results]
             raw_data = [result[0] for result in results]
 
             # get sanitized data JSONs that contain the IDs and sanitized urls/phone_nums/emails
             # these JSONs will be used to update the raw_data in a SQL UPDATE statement
             if s2d.kind == InfoKind.url.value: 
-                sanitized_data, log_records = get_sanitized_urls_for_update(raw_data, key_vals_rows = key_vals, src2dest=s2d, logger = logger)
+                url_sanitizer = URL_BulkSanitizer(strings = raw_data,
+                                                  key_val_rows = key_vals,
+                                                  contributor_values = contributor_vals,
+                                                  src2dest = s2d,
+                                                  logger = logger)
+                sanitized_data, log_records = url_sanitizer.get_jsons_for_update()
                 s2d.insert_log_records(log_records)
             elif s2d.kind == InfoKind.phone.value:
                 sanitized_data = get_sanitized_phone_nums_for_update(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, logger = logger)
