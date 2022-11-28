@@ -96,10 +96,10 @@ class URL_Logger:
         raw_string = self.sanitized_url_json['raw_string']
         sanitized_string = ', '.join([url_dict['URL'] for url_dict in self.sanitized_url_json['URLs']])
         if sanitized_string != raw_string:
-            message += f'\nSanitized "{raw_string}" to "{sanitized_string}"'
+            message += f"\nSanitized '{raw_string}' to '{sanitized_string}'"
 
         if len(url_prompts) > 0:
-            message += f'\nInvalid or bad URLs found. Please review.'
+            message += f"\nInvalid or bad URLs found. Please review."
 
         return message
 
