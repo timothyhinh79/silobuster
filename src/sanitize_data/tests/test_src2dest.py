@@ -74,6 +74,8 @@ def db():
         (
             id character varying(255) NOT NULL,
             job_id character varying(255),
+            job_timestamp TIMESTAMP,
+            total_records INTEGER,
             iteration_id character varying(255),
             step_name character varying(255),
             contributor_name character varying(255),
@@ -93,6 +95,8 @@ def db():
         (
             id character varying(255) NOT NULL,
             job_id character varying(255),
+            job_timestamp TIMESTAMP,
+            total_records INTEGER,
             iteration_id character varying(255),
             step_name character varying(255),
             contributor_name character varying(255),
@@ -351,10 +355,13 @@ def test_update_dest_data_w_mult_keys(db):
     ]
 
 def test_insert_log_records(db):
+    curr_time = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
     log_json = [
         {
             "id": 'test1', 
             "job_id": 'test1',
+            "job_timestamp": curr_time,
+            "total_records": 1,
             "iteration_id": 1,
             "step_name": "test1",
             "contributor_name": "test1", 
@@ -363,6 +370,8 @@ def test_insert_log_records(db):
         {
             "id": 'test2', 
             "job_id": 'test2',
+            "job_timestamp": curr_time,
+            "total_records": 2,
             "iteration_id": 2,
             "step_name": "test2",
             "contributor_name": "test2", 
@@ -375,11 +384,13 @@ def test_insert_log_records(db):
     singlekey_src2dest._open_dest_conn()
     log_records = singlekey_src2dest.dest_conn.execute('SELECT * FROM logs;').fetchall()
     singlekey_src2dest._close_dest_conn()
-
+    
     assert log_records == [
         (
             'test1', 
             'test1',
+            datetime.datetime.strptime(curr_time, "%m/%d/%Y %H:%M:%S"),
+            1,
             '1', 
             'test1',
             'test1', 
@@ -388,6 +399,8 @@ def test_insert_log_records(db):
         (
             'test2', 
             'test2',
+            datetime.datetime.strptime(curr_time, "%m/%d/%Y %H:%M:%S"),
+            2,
             '2', 
             'test2',
             'test2', 

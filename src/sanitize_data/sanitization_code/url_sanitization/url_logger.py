@@ -2,6 +2,7 @@ import json # needed to load JSON into logging table
 import uuid # to hash IDs for log records
 from classes.src2dest import Src2Dest # Src2Dest instances store information needed for logging
 import sqlalchemy # to insert log record into database
+import datetime
 
 class URL_Logger:
 
@@ -128,6 +129,7 @@ class URL_Logger:
         return {
             "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_url-{self.src2dest.source_table}-{key_vals_dict}-{self.sanitized_url_json['timestamp']}")), 
             "job_id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_url-{self.src2dest.job_timestamp}")), # how do we get job_id? could be generated automatically in separate task run at beginning of DAG, and then it would be passed as an argument to command to run dockerized container?
+            "job_timestamp": self.src2dest.job_timestamp,
             "iteration_id": 1, # how do we get iteration number? would developer pass an iteration # somewhere?
             "step_name": "sanitize_url",
             "contributor_name": self.contributor, 
