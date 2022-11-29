@@ -1,13 +1,20 @@
 import sqlalchemy
 import pandas as pd
+import os
 
 class URL_Reporter:
-    def __init__(self, log_db, log_table, job_id):
+    def __init__(self, log_db, log_table, job_id, reports_folder):
         self._log_db = log_db
         self._log_table = log_table
         self._job_id = job_id
+        self._reports_folder = reports_folder
 
         self._logs_parsed = self._parse_logs()
+        try:
+            assert self.logs_parsed['total_records'].max() == self.logs_parsed['total_records'].min()
+            self._total_records = self.logs_parsed['total_records'].max()
+        except:
+            raise Exception('minimum value of "total_records" is not equal to maximum value ("total_records" should only have one value)')
 
     @property
     def log_db(self):
@@ -24,6 +31,14 @@ class URL_Reporter:
     @property
     def logs_parsed(self):
         return self._logs_parsed
+
+    @property
+    def total_records(self):
+        return self._total_records
+
+    @property
+    def reports_folder(self):
+        return self._reports_folder
 
     # NOTE: consider converting SQL query into Python logic
     def _parse_logs(self):
@@ -45,6 +60,8 @@ class URL_Reporter:
             SELECT 
                   id
                 , job_id
+                , job_timestamp
+                , total_records
                 , iteration_id
                 , step_name
                 , contributor_name
@@ -75,15 +92,44 @@ class URL_Reporter:
         return pd.DataFrame(results)
 
     ### METHODS TO GENERATE REPORTS
-    # def generate(self):
-    #     breakpoint()
-    #     url_condition_summary = self.logs_parsed.groupby('url_condition', as_index=False).agg(num_records=('id', 'count')) 
-    #     error_code_summary = self.logs_parsed.groupby('full_url_status', as_index=False).agg(num_records=('id', 'count')) 
-    #     sanitization_summary = self.logs_parsed.groupby('sanitization_change', as_index=False).agg(num_records=('id', 'count')) 
 
+    def url_condition_summary(self):
+        """Generates DataFrame summarizing URL conditions (e.g. 'String is URL', 'String is invalid URL', 'String contains no URLs') """
+        url_condition_summary = self.logs_parsed.groupby('url_condition', as_index=False, dropna = False).agg(num_records=('id', 'count'))
+        url_condition_summary['url_condition'][url_condition_summary['url_condition'] == 'String is URL'] = 'String is invalid URL'
+        url_condition_summary = pd.concat([url_condition_summary, 
+                                           pd.DataFrame([{'url_condition': 'String is valid URL', 
+                                                          'num_records': self.total_records - url_condition_summary['num_records'].sum()}])])                                                         
+        return url_condition_summary
+    
+    def status_code_summary(self):
+        """Generates DataFrame summarizing distribution of URL status codes """
+        status_code_summary = self.logs_parsed.groupby('full_url_status', as_index=False, dropna = False).agg(num_records=('id', 'count')) 
+        status_code_summary['full_url_status'][status_code_summary['full_url_status'].isna()] = 'No URL detected'
+        status_code_summary = pd.concat([status_code_summary,
+                                        pd.DataFrame([{'full_url_status': 'Valid status code', 'num_records': self.total_records - status_code_summary['num_records'].sum()}])])
+        return status_code_summary
 
-    # def error_code
+    def sanitization_summary(self):
+        """Generates DataFrame summarizing sanitization results (how many records were modified) """
+        sanitization_summary = self.logs_parsed.groupby('sanitization_change', as_index=False, dropna = False).agg(num_records=('id', 'count')) 
+        sanitization_summary['num_records'][sanitization_summary['sanitization_change']=='Not Changed'] += self.total_records - sanitization_summary['num_records'].sum()
 
+        return sanitization_summary
+
+    def write_reports(self):
+        """ Write reports to CSV files in designated folder """
+        url_condition_summary = self.url_condition_summary()
+        status_code_summary = self.status_code_summary()
+        sanitization_summary = self.sanitization_summary()
+
+        if not os.path.exists(self.reports_folder):
+            os.makedirs(self.reports_folder)
+            print(f'New directory {self.reports_folder} created')
+
+        url_condition_summary.to_csv(self.reports_folder + '/url_condition_summary.csv', index = False)
+        status_code_summary.to_csv(self.reports_folder + '/status_code_summary.csv', index = False)
+        sanitization_summary.to_csv(self.reports_folder + '/sanitization_summary.csv', index = False)
     
 
     
