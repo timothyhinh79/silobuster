@@ -1,13 +1,16 @@
-import sqlalchemy
-import pandas as pd
+import sqlalchemy 
+import pandas as pd # for generating reports as DataFrame tables
 import os
 
 class URL_Reporter:
-    def __init__(self, log_db, log_table, job_id, reports_folder):
+    def __init__(self, log_db, log_table, job_id, output_folder = None):
         self._log_db = log_db
         self._log_table = log_table
         self._job_id = job_id
-        self._reports_folder = reports_folder
+        if output_folder:
+            self._output_folder = output_folder
+        else:
+            self._output_folder = f"url_reports_{job_id}"
 
         self._logs_parsed = self._parse_logs()
         try:
@@ -37,8 +40,8 @@ class URL_Reporter:
         return self._total_records
 
     @property
-    def reports_folder(self):
-        return self._reports_folder
+    def output_folder(self):
+        return self._output_folder
 
     # NOTE: consider converting SQL query into Python logic
     def _parse_logs(self):
@@ -119,17 +122,20 @@ class URL_Reporter:
 
     def write_reports(self):
         """ Write reports to CSV files in designated folder """
+        # generate DataFrame tables
         url_condition_summary = self.url_condition_summary()
         status_code_summary = self.status_code_summary()
         sanitization_summary = self.sanitization_summary()
 
-        if not os.path.exists(self.reports_folder):
-            os.makedirs(self.reports_folder)
-            print(f'New directory {self.reports_folder} created')
+        # create designated folder for outputting tables to CSV, if it doesn't already exist
+        if not os.path.exists(self.output_folder):
+            os.makedirs(self.output_folder)
+            print(f'New directory {self.output_folder} created')
 
-        url_condition_summary.to_csv(self.reports_folder + '/url_condition_summary.csv', index = False)
-        status_code_summary.to_csv(self.reports_folder + '/status_code_summary.csv', index = False)
-        sanitization_summary.to_csv(self.reports_folder + '/sanitization_summary.csv', index = False)
+        # export DataFrames to CSV in designated folder
+        url_condition_summary.to_csv(self.output_folder + '/url_condition_summary.csv', index = False)
+        status_code_summary.to_csv(self.output_folder + '/status_code_summary.csv', index = False)
+        sanitization_summary.to_csv(self.output_folder + '/sanitization_summary.csv', index = False)
     
 
     
