@@ -140,8 +140,8 @@ def test_create_message():
 
     url_logger_almost_clean = URL_Logger(sanitized_url_json_almost_clean, singlekey_src2dest, key_vals, contributor='whatcom')
     url_logger_unclean = URL_Logger(sanitized_url_json_unclean, singlekey_src2dest, key_vals, contributor='whatcom')
-    assert url_logger_almost_clean.create_message([]) == 'String is not URL but contains one\nSanitized "removethispart: https://www.w3.org/Addressing/URL/url-spec.txt" to "https://www.w3.org/Addressing/URL/url-spec.txt"'
-    assert url_logger_unclean.create_message(unclean_url_prompts) == f'String contains multiple URLs\nSanitized "{urls}" to "https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program, https://www.kidsinmotionclinic.org, https://www.maxhigbee.org"\nInvalid or bad URLs found. Please review.'
+    assert url_logger_almost_clean.create_message([]) == "String is not URL but contains one\nSanitized 'removethispart: https://www.w3.org/Addressing/URL/url-spec.txt' to 'https://www.w3.org/Addressing/URL/url-spec.txt'"
+    assert url_logger_unclean.create_message(unclean_url_prompts) == f"String contains multiple URLs\nSanitized '{urls}' to 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program, https://www.kidsinmotionclinic.org, https://www.maxhigbee.org'\nInvalid or bad URLs found. Please review."
 
 
 def test_create_log_message():
@@ -171,6 +171,7 @@ def test_create_log_json():
     assert url_logger_unclean.create_log_json() == {
             "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_url-{singlekey_src2dest.source_table}-{key_vals_dict}-{url_logger_unclean.sanitized_url_json['timestamp']}")), 
             "job_id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_url-{singlekey_src2dest.job_timestamp}")), 
+            "job_timestamp": singlekey_src2dest.job_timestamp,
             "iteration_id": 1, 
             "step_name": "sanitize_url",
             "contributor_name": "whatcom", 
