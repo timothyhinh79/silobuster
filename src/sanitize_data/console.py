@@ -24,6 +24,6 @@ def tester():
 
         tested_numbers.append(pluck_phone_num(phone_regex, chunk, logger))
 
-
+raw_phone_str = '(360) 398-0223 or 888-360-0223'
 
 

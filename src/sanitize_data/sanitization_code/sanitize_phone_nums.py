@@ -3,7 +3,10 @@ import phonenumbers
 from classes.infokind import InfoKind
 import datetime
 import psycopg2
-
+import psycopg2.extras
+import json
+import uuid
+import datetime
 # TO-DOs: 
 #   use regex for identifying multiple phone numbers
 #   split out multiple phone numbers into different rows
@@ -97,8 +100,7 @@ def pluck_phone_num(regex, raw_phone_str, logger):
 
 
 
-def format_phone_numbers(regex, raw_phone_num, logger):
-    raw_list = pluck_phone_num(regex, raw_phone_num, logger)
+def format_phone_numbers(raw_list):
     sanitized_numbers = []
     for phone_number in raw_list:
         if phone_number[0] == '1': 
@@ -107,7 +109,7 @@ def format_phone_numbers(regex, raw_phone_num, logger):
         else: 
             sanitized_numbers.append(phone_number)
 
-        return sanitized_numbers
+    return sanitized_numbers
 
 # def log_email_sanitization_errors(raw_email_str, sanitized_emails, logger, table_row_id_str = ''):
 #     if not sanitized_emails: 
@@ -140,7 +142,7 @@ def get_row_w_sanitized_phone(sanitized_phone, keys, key_vals):
 
 def cleaning_engine(phone_regex, raw_phone_str, logger):
     raw_phone_num = pluck_phone_num(phone_regex, raw_phone_str, logger)
-    formatted_phone_list = format_phone_numbers(phone_regex, raw_phone_num, logger )
+    formatted_phone_list = format_phone_numbers(raw_phone_num)
     sanitized_phone_numbers = phone_number_sieve(formatted_phone_list)
     return sanitized_phone_numbers
 
@@ -201,7 +203,104 @@ def crowd_disperser(plucked_phones, raw_phone_str):
         sql = """delete from phone where id = %s"""
         cursor.execute(sql, (original_id,))
 
-            
+  
         
         
         return id
+
+
+# 
+#     "id": "string",
+#     "link_entity": "string",
+#     "link_id": "string",
+#     "link_column": "string",
+#     "prompts": [
+#       {
+#         "descriptSion": "string",
+#         "suggested_value": "string"
+#       }
+#     ]
+# }
+
+# need to write function that outputs the log message above as well as a json containing all the column names as keys and the rows as values
+
+
+def get_jsons_for_phone(phone_regex, raw_phone_str, logger):
+    sanitized_phone_numbers = cleaning_engine(phone_regex, raw_phone_str, logger)
+    DB_CONNECTION = psycopg2.connect(dbname = 'defaultdb', user = 'postgres', password = 'postgres')
+
+    cursor = DB_CONNECTION.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+# sql = """select * from phone where number = '(360) 398-0223 or 888-360-0223'"""
+# cursor.execute(sql, (raw_phone_str,))
+
+    results = []
+    for number in sanitized_phone_numbers:
+        sql = """select id, number from phone where number = %s"""
+        cursor.execute(sql, (raw_phone_str,))
+        result = cursor.fetchone() 
+        result.pop('number')
+        result['phone'] = number 
+        results.append(result)
+        result['timestamp'] = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+
+    sanitized_phone_json_list = results 
+
+    json_log_list = []
+    
+    for sanitized_phone_json in sanitized_phone_json_list:
+
+        log_message = {
+            "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_phone-{sanitized_phone_json['timestamp']}")),
+            "link_entity": "phone",
+            "link_id": sanitized_phone_json["id"],
+            "link_column": "phone",
+            "prompts": [
+            {
+                "description": raw_phone_str,
+                "suggested_value": sanitized_phone_json['phone']
+            }
+            ]
+        }
+
+        json_log =  {
+                "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_phone-{sanitized_phone_json['timestamp']}")), 
+                "job_id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_phone-{sanitized_phone_json['timestamp']}")), # how do we get job_id? could be generated automatically in separate task run at beginning of DAG, and then it would be passed as an argument to command to run dockerized container?
+                "job_timestamp": sanitized_phone_json['timestamp'], 
+                "step_name": "sanitize_phone",
+                "log_message": log_message
+            }
+        json_log_list.append(json_log)
+    
+
+    return json.dumps(sanitized_phone_json_list), json.dumps(json_log_list)
+
+
+    # for phone_number in sanitized_phone_numbers: 
+
+        
+        
+# def get_jsons_for_update(self):
+#         """Sanitizes the given raw_urls, and returns a JSON with the given keys and sanitized URLs"""
+#         sanitized_url_jsons = self.get_sanitized_url_jsons()
+        
+#         rows_w_sanitized_url = []
+#         log_records = []
+#         for contributor_val, key_vals_row, sanitized_url_json in zip(self.contributor_values, self.key_values, sanitized_url_jsons):
+
+#             # for console logging
+#             table_row_id_str = get_error_location_str_for_logging(self.src2dest.source_table, self.src2dest.source_column, self.src2dest.key, key_vals_row)
+            
+#             # add row if sanitization changed raw URL string, and log the change
+#             new_row = self.get_row_w_sanitized_url(sanitized_url_json, key_vals_row, table_row_id_str)
+#             if new_row: rows_w_sanitized_url.append(new_row)
+
+#             # log errors in URL sanitization
+#             log_url_sanitization_errors(self.logger, sanitized_url_json, table_row_id_str)
+
+#             # insert log record into logs table if there is an issue/error
+#             url_logger = URL_Logger(sanitized_url_json, self.src2dest, key_vals_row, contributor_val)
+#             log_json = url_logger.create_log_json() 
+#             if log_json: log_records.append(log_json | {'total_records': len(self.strings)}) # adding total_records for reporting purposes
+
+#         return rows_w_sanitized_url, log_records 
+
