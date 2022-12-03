@@ -33,6 +33,12 @@ class URL_Sanitizer:
     def get_url_status(cls, url_string):
         """Retrieves status code for the given URL, with a retry mechanism for URLs returning 429, 503"""
 
+        ## IMPORTANT NOTE (Tim): as of 12/3/2022, temporarily disabling below code that makes requests.get() call 
+        ## and instead returning 200 (so that all URLs are assumed to be valid). This will effectively remove the  validation
+        ## component from log reports to quickly meet deadlines in December 2022. PLEASE NOTE THAT TESTS RELATING TO URL VALIDATION IN 
+        ## tests/ FOLDER  WILL FAIL AS A RESULT. Remove the 'return 200' line to re-enable validation.
+        return 200
+        
         try:
             status_code = requests.get(url_string, timeout = cls.url_validation_timeout).status_code
             num_attempts = 1
