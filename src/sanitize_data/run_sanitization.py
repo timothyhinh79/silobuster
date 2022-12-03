@@ -139,7 +139,7 @@ def main():
             elif s2d.kind == InfoKind.email.value:
                 sanitized_data, log_records = get_sanitized_emails_for_update(raw_data, contributor_vals, key_vals, s2d, logger)
                 s2d.insert_log_records(log_records)
-
+            
             if not args.write:
                 # if there is no destination table/database specified, then update raw data in the source table/database with sanitized output
                 if not args.dest_db:

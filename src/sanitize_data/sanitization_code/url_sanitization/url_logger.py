@@ -95,7 +95,11 @@ class URL_Logger:
     def create_message(self, url_prompts):
         message = self.sanitized_url_json['condition']
         raw_string = self.sanitized_url_json['raw_string']
-        sanitized_string = ', '.join([url_dict['URL'] for url_dict in self.sanitized_url_json['URLs']])
+        if not self.sanitized_url_json['URLs']:
+            sanitized_string = self.sanitized_url_json['raw_string']
+        else:
+            sanitized_string = ', '.join([url_dict['URL'] for url_dict in self.sanitized_url_json['URLs']])
+
         if sanitized_string != raw_string:
             message += f"\nSanitized '{raw_string}' to '{sanitized_string}'"
 
@@ -112,7 +116,7 @@ class URL_Logger:
 
         json = {
             # "id": , # is there a need for id if there's only one log message per row in the log table?
-            "link_entity": f"{self.src2dest.source_table}", #?
+            "link_entity": f"{self.src2dest.source_table}", 
             "link_id": self.key_vals[0], # assuming key_vals has only one value for the "id" field (primary key of the table)
             "link_column": self.src2dest.source_column,
             "prompts": prompts, # JSON array
@@ -121,7 +125,6 @@ class URL_Logger:
 
     # create a log JSON with IDs and the log_message if needed
     def create_log_json(self):
-        if self.is_clean(): return None
 
         log_message = self.create_log_message()
         key_vals_dict = {key_col:key_val for key_col, key_val in zip(self.src2dest.key, self.key_vals)}
