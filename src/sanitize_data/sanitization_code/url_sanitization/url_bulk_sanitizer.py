@@ -99,10 +99,10 @@ class URL_BulkSanitizer:
             # log errors in URL sanitization
             log_url_sanitization_errors(self.logger, sanitized_url_json, table_row_id_str)
 
-            # insert log record into logs table if there is an issue/error
+            # insert log record into logs table
             url_logger = URL_Logger(sanitized_url_json, self.src2dest, key_vals_row, contributor_val)
             log_json = url_logger.create_log_json() 
-            if log_json: log_records.append(log_json | {'total_records': len(self.strings)}) # adding total_records for reporting purposes
+            log_records.append(log_json)
 
         return rows_w_sanitized_url, log_records
 
