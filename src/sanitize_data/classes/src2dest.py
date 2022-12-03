@@ -33,18 +33,42 @@ class Src2Dest(object):
     def _open_source_conn(self):
         self.source_db = sqlalchemy.create_engine(self.source_conn_str, echo=True)
         self.source_conn = self.source_db.connect()
+        return self.source_db, self.source_conn
 
     def _close_source_conn(self):
         self.source_conn.close()
         self.source_db.dispose()
+        self.source_conn = None
+        self.source_db = None
 
     def _open_dest_conn(self, dest_conn_str = ''):
         self.dest_db = sqlalchemy.create_engine(self.dest_conn_str, echo=True)
         self.dest_conn = self.dest_db.connect()
+        return self.dest_db, self.dest_conn
 
     def _close_dest_conn(self):
         self.dest_conn.close()
         self.dest_db.dispose()
+        self.dest_conn = None
+        self.dest_db = None
+
+    def _open_conn_for_update(self):
+        if not self.dest_conn_str:
+            return self._open_source_conn()
+        else:
+            return self._open_dest_conn()
+
+    def _close_conn_for_update(self):
+        if self.source_db:
+            self._close_source_conn()
+        if self.dest_db:
+            self._close_dest_conn()
+    
+    def _get_update_table_n_col(self):
+        if not self.dest_conn:
+            return self.source_table, self.source_column
+        else:
+            return self.dest_table, self.dest_column
     
     # get sorting statement for constructing SQL queries for given set of keys
     # Sample output: "ORDER BY id1, id2"
@@ -229,4 +253,65 @@ class Src2Dest(object):
         else:
             raise Exception('logging_db was not specified as "source" or "dest"')
 
+    # insert new "semi-duplicate" records for given ids and new sanitized values (for phone number sanitization) 
+    def insert_semidupe_records(self, records):
+        db, conn = self._open_conn_for_update()
+        update_table, update_column = self._get_update_table_n_col()
+        
+        # retrieve records with provided ids  
+        key_join_str = ' AND '.join([f'{update_table}.{key}=mapping_temp.{key}' for key in self.key])
+        conn.execute(sqlalchemy.sql.text(self.generate_mapping_tbl()), sanitized_data_json = json.dumps(records))
 
+        select_sql = f"""
+            SELECT {update_table}.*, mapping_temp.{update_column} as sanitized_val
+            FROM mapping_temp
+            LEFT JOIN {update_table}
+                ON {key_join_str}
+            WHERE {update_table}.{update_column} IS NOT NULL;
+        """
+        
+        conn_exec = conn.execute(sqlalchemy.sql.text(select_sql))
+
+        # convert tuples into JSON with column headers
+        cols = conn_exec.keys()
+        results_json = [{col:val for col, val in zip(cols, vals_tuple)} for vals_tuple in conn_exec.fetchall()]
+
+        # deleting original records and dropping mapping_temp
+        del_sql = f"""
+            DELETE FROM {update_table}
+            USING mapping_temp
+            WHERE {key_join_str};
+
+            DROP TABLE mapping_temp;
+        """
+
+        conn.execute(sqlalchemy.sql.text(del_sql))
+
+        id_counter = {}
+        # modify each record's key and source column values
+        for result in results_json:
+
+            # determine index suffix to append to key columns
+            result_key_str = ','.join([f"{k}:{v}" for k,v in result.items() if k in self.key])
+            if result_key_str in id_counter:
+                id_counter[result_key_str] += 1
+            else:
+                id_counter[result_key_str] = 1
+            idx_suffix = id_counter[result_key_str]
+
+            for key_col in self.key:
+                result[key_col] = f"{result[key_col]}-{idx_suffix}"
+
+            # replace original source column value with new sanitized value, and delete 'sanitized_val' column
+            result[update_column] = result['sanitized_val']
+            del result['sanitized_val']
+
+        # insert new records
+        conn.execute(sqlalchemy.sql.text(f"""
+                INSERT INTO {update_column}
+                SELECT *
+                FROM json_populate_recordset(NULL::{update_table}, :new_records);
+            """)
+        , new_records = json.dumps(results_json))
+        
+        self._close_conn_for_update()
