@@ -36,8 +36,9 @@ class Src2Dest(object):
         return self.source_db, self.source_conn
 
     def _close_source_conn(self):
-        self.source_conn.close()
-        self.source_db.dispose()
+        if self.source_db and self.source_conn:
+            self.source_conn.close()
+            self.source_db.dispose()
         self.source_conn = None
         self.source_db = None
 
@@ -47,8 +48,9 @@ class Src2Dest(object):
         return self.dest_db, self.dest_conn
 
     def _close_dest_conn(self):
-        self.dest_conn.close()
-        self.dest_db.dispose()
+        if self.dest_db and self.dest_conn:
+            self.dest_conn.close()
+            self.dest_db.dispose()
         self.dest_conn = None
         self.dest_db = None
 
@@ -154,7 +156,10 @@ class Src2Dest(object):
     # creates the destination table with destination column in the destination database
     def create_dest_table(self):
 
+        # need to open source conn too in order to get engine URL object for replicating data from source DB to dest DB
+        self._open_source_conn()
         self._open_dest_conn()
+        
         # if the source and destination databases are different, copy table from source DB to dest DB
         if self.dest_conn.engine.url != self.source_conn.engine.url:
 
@@ -199,6 +204,7 @@ class Src2Dest(object):
             # else if source table and destination table are the same, and source and destination columns are also the same, do nothing
             # in this case, update_dest_data() should simply update the source/destination column in the source/destination table
         
+        self._close_source_conn()
         self._close_dest_conn()
 
     # update the destination table (created by create_dest_table()) with the given sanitized data
@@ -308,7 +314,7 @@ class Src2Dest(object):
 
         # insert new records
         conn.execute(sqlalchemy.sql.text(f"""
-                INSERT INTO {update_column}
+                INSERT INTO {update_table}
                 SELECT *
                 FROM json_populate_recordset(NULL::{update_table}, :new_records);
             """)

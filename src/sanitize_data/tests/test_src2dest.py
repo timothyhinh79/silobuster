@@ -430,17 +430,20 @@ def test_insert_semidupe_records(db):
     singlekey_src2dest.create_dest_table()
     singlekey_src2dest.insert_semidupe_records(sanitized_records)
 
-    singlekey_src2dest._open_source_conn()
-    results = singlekey_src2dest.source_conn.execute('SELECT * FROM data').fetchall()
-    singlekey_src2dest._close_source_conn()
+    singlekey_src2dest._open_dest_conn()
+    conn_exec = singlekey_src2dest.dest_conn.execute('SELECT * FROM data_dest')
+    
+    cols = conn_exec.keys()
+    results_json = [{col:val for col, val in zip(cols, vals_tuple)} for vals_tuple in conn_exec.fetchall()]
+    singlekey_src2dest._close_dest_conn()
 
-    assert results == [
-        ('1', 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'asdfadf@gmail.com', '111 111 1111', 'whatcom'),
-        ('2', 'this string has no urls', 'this string has no emails', 'this string has no phone number', 'whatcom'),
-        ('3-1', 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'qwerty@yahoo.com', '222-222-2222', 'whatcom'),
-        ('3-2', 'https://www.kidsinmotionclinic.org', 'qwerty@yahoo.com', '222-222-2222', 'whatcom'),
-        ('4-1', 'this part should be removed', 'asdfadf@gmail.com', '111 111 1111', 'whatcom'),
-        ('4-2', 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'asdfadf@gmail.com', '111 111 1111', 'whatcom')
+    assert results_json == [
+        {'id': '1', 'url': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'email': 'asdfadf@gmail.com', 'phone': '111 111 1111', 'contributor': 'whatcom'},
+        {'id':'2', 'url': 'this string has no urls', 'email': 'this string has no emails', 'phone': 'this string has no phone number', 'contributor': 'whatcom'},
+        {'id':'3-1', 'url': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'email':'qwerty@yahoo.com', 'phone': '222-222-2222', 'contributor':'whatcom'},
+        {'id':'3-2', 'url': 'https://www.kidsinmotionclinic.org', 'email':'qwerty@yahoo.com', 'phone': '222-222-2222', 'contributor':'whatcom'},
+        {'id':'4-1', 'url': 'this part should be removed', 'email':'asdfadf@gmail.com', 'phone': '111 111 1111', 'contributor':'whatcom'},
+        {'id':'4-2', 'url': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'email':'asdfadf@gmail.com', 'phone': '111 111 1111', 'contributor':'whatcom'}
     ]
 
 def test_insert_semidupe_records_multikeys(db):
@@ -466,18 +469,21 @@ def test_insert_semidupe_records_multikeys(db):
             'url': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program'
         }
     ]
-
+    multikey_src2dest.create_dest_table()
     multikey_src2dest.insert_semidupe_records(sanitized_records)
 
-    multikey_src2dest._open_source_conn()
-    results = multikey_src2dest.source_conn.execute('SELECT * FROM data').fetchall()
-    multikey_src2dest._close_source_conn()
+    multikey_src2dest._open_dest_conn()
+    conn_exec = multikey_src2dest.dest_conn.execute('SELECT * FROM data_dest')
 
-    assert results == [
-        ('1', 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'asdfadf@gmail.com', '111 111 1111', 'whatcom'),
-        ('2', 'this string has no urls', 'this string has no emails', 'this string has no phone number', 'whatcom'),
-        ('3-1', 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'qwerty@yahoo.com-1', '222-222-2222', 'whatcom'),
-        ('3-2', 'https://www.kidsinmotionclinic.org', 'qwerty@yahoo.com-2', '222-222-2222', 'whatcom'),
-        ('4-1', 'this part should be removed', 'asdfadf@gmail.com-1', '111 111 1111', 'whatcom'),
-        ('4-2', 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'asdfadf@gmail.com-2', '111 111 1111', 'whatcom')
+    cols = conn_exec.keys()
+    results_json = [{col:val for col, val in zip(cols, vals_tuple)} for vals_tuple in conn_exec.fetchall()]
+    multikey_src2dest._close_dest_conn()
+
+    assert results_json == [
+        {'id': '1', 'url': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'email': 'asdfadf@gmail.com', 'phone': '111 111 1111', 'contributor': 'whatcom'},
+        {'id':'2', 'url': 'this string has no urls', 'email': 'this string has no emails', 'phone': 'this string has no phone number', 'contributor': 'whatcom'},
+        {'id':'3-1', 'url': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'email':'qwerty@yahoo.com-1', 'phone': '222-222-2222', 'contributor':'whatcom'},
+        {'id':'3-2', 'url': 'https://www.kidsinmotionclinic.org', 'email':'qwerty@yahoo.com-2', 'phone': '222-222-2222', 'contributor':'whatcom'},
+        {'id':'4-1', 'url': 'this part should be removed', 'email':'asdfadf@gmail.com-1', 'phone': '111 111 1111', 'contributor':'whatcom'},
+        {'id':'4-2', 'url': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'email':'asdfadf@gmail.com-2', 'phone': '111 111 1111', 'contributor':'whatcom'}
     ]
