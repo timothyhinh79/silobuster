@@ -269,7 +269,7 @@ class Src2Dest(object):
         conn.execute(sqlalchemy.sql.text(self.generate_mapping_tbl()), sanitized_data_json = json.dumps(records))
 
         select_sql = f"""
-            SELECT {update_table}.*, mapping_temp.{update_column} as sanitized_val
+            SELECT {update_table}.*, mapping_temp.{self.kind} as sanitized_val
             FROM mapping_temp
             LEFT JOIN {update_table}
                 ON {key_join_str}

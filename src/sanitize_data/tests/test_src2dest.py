@@ -215,7 +215,6 @@ def test_update_src_data(db):
     singlekey_src2dest.update_src_data(sanitized_urls)
 
     updated_data = singlekey_src2dest.query_db(batch = args_test.batch_row_size, offset = 0)
-
     assert updated_data == [
         ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'whatcom','1'), 
         ('this string has no urls', 'whatcom','2'), 

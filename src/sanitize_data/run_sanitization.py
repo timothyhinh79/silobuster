@@ -135,7 +135,8 @@ def main():
                 sanitized_data, log_records = url_sanitizer.get_jsons_for_update()
                 s2d.insert_log_records(log_records)
             elif s2d.kind == InfoKind.phone.value:
-                sanitized_data = get_sanitized_phone_nums_for_update(raw_data, keys = s2d.key, key_vals = key_vals, source_table = s2d.source_table, source_column = s2d.source_column, logger = logger)
+                sanitized_data, log_records = get_sanitized_phone_nums_for_update(raw_data, contributor_vals, keys = s2d.key, key_vals = key_vals, s2d = s2d, logger = logger)
+                s2d.insert_log_records(log_records)
             elif s2d.kind == InfoKind.email.value:
                 sanitized_data, log_records = get_sanitized_emails_for_update(raw_data, contributor_vals, key_vals, s2d, logger)
                 s2d.insert_log_records(log_records)
@@ -150,7 +151,10 @@ def main():
                 else:
                     if offset == 0: 
                         s2d.create_dest_table()
-                    s2d.update_dest_data(sanitized_data)
+                    if s2d.kind == InfoKind.phone.value:
+                        s2d.insert_semidupe_records(sanitized_data)
+                    else:
+                        s2d.update_dest_data(sanitized_data)
 
                 
 

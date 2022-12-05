@@ -81,6 +81,12 @@ class URL_Sanitizer:
             condition = 'String contains multiple URLs'
         
         return condition
+    
+    def get_sanitized_str(self, url_strings):
+        if not url_strings:
+            return self.string
+        else:
+            return ', '.join(url_strings)
 
     ### MAIN METHOD TO RUN SANITIZATION AND GENERATE JSON OUTPUT
     def sanitize_url(self):
@@ -98,7 +104,7 @@ class URL_Sanitizer:
             url_output[-1].update(url_status)
             
         json_output = {'raw_string': self.string, 
-                       'sanitized_string': ', '.join(url_strings), 
+                       'sanitized_string': self.get_sanitized_str(url_strings), 
                        'condition': condition, 
                        'timestamp': datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S"), 
                        'URLs': url_output}
