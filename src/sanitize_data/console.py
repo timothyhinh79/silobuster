@@ -24,6 +24,7 @@ def tester():
 
         tested_numbers.append(pluck_phone_num(phone_regex, chunk, logger))
 
-raw_phone_str = '(360) 398-0223 or 888-360-0223'
+raw_phone_str = '1 800 RUN AWAY() or 888-360-0223'
 
 
+phone_with_letters_regex = "\s*(?:\+?1{1})?[-. (]?\d{3}?[-. )](?:[A-Za-z]{3}[-. (][A-Za-z]{4})"

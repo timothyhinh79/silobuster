@@ -6,15 +6,15 @@ import psycopg2
 import psycopg2.extras
 import json
 import uuid
-import datetime
-# TO-DOs: 
+import datetime 
+# TO-DOs:  
 #   use regex for identifying multiple phone numbers
 #   split out multiple phone numbers into different rows
 #   fill out phone extension if appropriate
 
 # placeholder for now...will spend more time figuring out a better Regex that accurately can identify multiple numbers in a string
 phone_regex = "\s*(?:\+?(?P<country_code>1{1}))?([-. (]*(?P<area_code>\d{3})[-. )]*)?((?P<first_three>\d{3})[-. ]*(?:[-.x ]*(?P<last_four>\d+))?)\s*"
-
+phone_with_letters_regex = "\s*(?:\+?1{1})?[-. (]?\d{3}?[-. )](?:[A-Za-z]{3}[-. (][A-Za-z]{4})"
 
 def get_sanitized_phone_nums_for_update(raw_phone_nums, keys, key_vals, source_table, source_column, logger):
     """Sanitizes the given raw_phone_nums, and returns a JSON with the given keys and sanitized phone numbers
@@ -72,7 +72,10 @@ def get_sanitized_phone_nums_for_update(raw_phone_nums, keys, key_vals, source_t
 #         logger.error(f"Unable to parse or find phone number in text '{raw_phone_num}' on {table_row_id_str}")
 #         return raw_phone_num
 
-def pluck_phone_num(regex, raw_phone_str, logger):
+
+#Grabs the relevant parts of capture groups to produce a proper phone number
+def pluck_phone_num(regex, raw_phone_str, logger): 
+
     if raw_phone_str:
         sanitized_phones = re.findall(regex, raw_phone_str)
     # if not sanitized_phones: return raw_phone_str
@@ -96,7 +99,7 @@ def pluck_phone_num(regex, raw_phone_str, logger):
         logger.debug(f"multiple phone numbers inside of entry")
         
 
-    return number_list 
+    return number_list, log_messages
 
 
 
@@ -225,25 +228,33 @@ def crowd_disperser(plucked_phones, raw_phone_str):
 # need to write function that outputs the log message above as well as a json containing all the column names as keys and the rows as values
 
 
-def get_jsons_for_phone(phone_regex, raw_phone_str, logger):
+def get_jsons_for_phone(phone_regex, raw_phone_str, logger, key_val):
     sanitized_phone_numbers = cleaning_engine(phone_regex, raw_phone_str, logger)
-    DB_CONNECTION = psycopg2.connect(dbname = 'defaultdb', user = 'postgres', password = 'postgres')
+    if len(re.findall(phone_with_letters_regex, raw_phone_str)) >= 1:
+        logger.debug("entry contains phone number with letters")
+    # DB_CONNECTION = psycopg2.connect(dbname = 'defaultdb', user = 'postgres', password = 'postgres')
 
-    cursor = DB_CONNECTION.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-# sql = """select * from phone where number = '(360) 398-0223 or 888-360-0223'"""
-# cursor.execute(sql, (raw_phone_str,))
+    # cursor = DB_CONNECTION.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+    # sql = """select * from phone where number = %s"""
+    # cursor.execute(sql, (raw_phone_str,))
 
-    results = []
-    for number in sanitized_phone_numbers:
-        sql = """select id, number from phone where number = %s"""
-        cursor.execute(sql, (raw_phone_str,))
-        result = cursor.fetchone() 
-        result.pop('number')
-        result['phone'] = number 
-        results.append(result)
-        result['timestamp'] = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+        
+    #     sql = """select id, number from phone where number = %s"""
+    #     cursor.execute(sql, (raw_phone_str,))
+    #     result = cursor.fetchone() 
+    #     result.pop('number')
+    #     result['phone'] = number 
+    #     results.append(result)
+    #     result['timestamp'] = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    id_and_number_jsons = [] 
+    for phone_number in sanitized_phone_numbers:
+        id_and_phone_dict = {'id':key_val}
+        id_and_phone_dict['phone'] = phone_number
+        id_and_number_jsons.append(id_and_phone_dict)
+    
+    # [{'id': key_val, 'phone': sanitized_phone_numbers[0]}, {'id': key_val, 'phone': sanitized_phone_numbers[1] }]
 
-    sanitized_phone_json_list = results 
+    sanitized_phone_json_list = id_and_number_jsons 
 
     json_log_list = []
     
@@ -271,7 +282,7 @@ def get_jsons_for_phone(phone_regex, raw_phone_str, logger):
             }
         json_log_list.append(json_log)
     
-
+    json['log_message']['description'] = 
     return json.dumps(sanitized_phone_json_list), json.dumps(json_log_list)
 
 
