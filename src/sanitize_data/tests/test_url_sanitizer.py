@@ -83,7 +83,7 @@ def test_sanitize_url_with_no_urls():
     sanitizer = URL_Sanitizer(test_string)
     sanitized_url_json = sanitizer.sanitize_url()
     assert 'timestamp' in sanitized_url_json
-    assert remove_timestamp_from_json(sanitized_url_json) == {'raw_string': '', 'condition': 'String contains no URLs', 'URLs': []}
+    assert remove_timestamp_from_json(sanitized_url_json) == {'raw_string': '', 'sanitized_string': '', 'condition': 'String contains no URLs', 'URLs': []}
 
 def test_sanitize_url_with_only_one_url():
     test_string_1 = 'https://www.w3.org/Addressing/URL/url-spec.txt'
@@ -96,10 +96,10 @@ def test_sanitize_url_with_only_one_url():
     sanitizer_3 = URL_Sanitizer(test_string_3)
     sanitizer_4 = URL_Sanitizer(test_string_4)
 
-    assert remove_timestamp_from_json(sanitizer_1.sanitize_url()) == {'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
-    assert remove_timestamp_from_json(sanitizer_2.sanitize_url())== {'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'root_URL': 'https://www.w3.org', 'URL_status': 300, 'root_URL_status': 200}]}
-    assert remove_timestamp_from_json(sanitizer_3.sanitize_url()) == {'raw_string': 'URL Specification https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is not URL but contains one', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
-    assert remove_timestamp_from_json(sanitizer_4.sanitize_url()) == {'raw_string': 'URL Specification https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'condition': 'String is not URL but contains one', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'root_URL': 'https://www.w3.org', 'URL_status': 300, 'root_URL_status': 200}]}
+    assert remove_timestamp_from_json(sanitizer_1.sanitize_url()) == {'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'sanitized_string': 'https://www.w3.org/Addressing/URL/url-spec.txt','condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
+    assert remove_timestamp_from_json(sanitizer_2.sanitize_url())== {'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'sanitized_string': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'root_URL': 'https://www.w3.org', 'URL_status': 300, 'root_URL_status': 200}]}
+    assert remove_timestamp_from_json(sanitizer_3.sanitize_url()) == {'raw_string': 'URL Specification https://www.w3.org/Addressing/URL/url-spec.txt', 'sanitized_string': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is not URL but contains one', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
+    assert remove_timestamp_from_json(sanitizer_4.sanitize_url()) == {'raw_string': 'URL Specification https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'sanitized_string': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'condition': 'String is not URL but contains one', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'root_URL': 'https://www.w3.org', 'URL_status': 300, 'root_URL_status': 200}]}
 
 def test_sanitize_url_with_multiple_URLs():
     test_string = 'https://www.w3.org/Addressing/URL/url-spec.txtasdf https://gist.github.com/dperini/729294 https://miguendes.me/how-to-check-if-a-string-is-a-valid-url-in-python'
@@ -107,6 +107,7 @@ def test_sanitize_url_with_multiple_URLs():
     sanitizer = URL_Sanitizer(test_string)
     assert remove_timestamp_from_json(sanitizer.sanitize_url()) == {
         'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf https://gist.github.com/dperini/729294 https://miguendes.me/how-to-check-if-a-string-is-a-valid-url-in-python',
+        'sanitized_string': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf, https://gist.github.com/dperini/729294, https://miguendes.me/how-to-check-if-a-string-is-a-valid-url-in-python', 
         'condition': 'String contains multiple URLs', 
         'URLs': [
             {'URL': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'root_URL': 'https://www.w3.org', 'URL_status': 300, 'root_URL_status': 200},
@@ -124,6 +125,7 @@ def test_sample_urls_from_within_service():
     sanitizer = URL_Sanitizer(urls)
     assert remove_timestamp_from_json(sanitizer.sanitize_url()) == {
         'raw_string': urls,
+        'sanitized_string': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program, https://www.kidsinmotionclinic.org, https://www.maxhigbee.org',
         'condition': 'String contains multiple URLs', 
         'URLs': [
             {'URL': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'root_URL': 'https://www.mtbaker.wednet.edu', 'URL_status': 404, 'root_URL_status': 200},

@@ -97,7 +97,11 @@ class URL_Sanitizer:
             url_output.append({'URL': url_string, 'root_URL': root_url})
             url_output[-1].update(url_status)
             
-        json_output = {'raw_string': self.string, 'condition': condition, 'timestamp': datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S"), 'URLs': url_output}
+        json_output = {'raw_string': self.string, 
+                       'sanitized_string': ', '.join(url_strings), 
+                       'condition': condition, 
+                       'timestamp': datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S"), 
+                       'URLs': url_output}
         return json_output
 
     

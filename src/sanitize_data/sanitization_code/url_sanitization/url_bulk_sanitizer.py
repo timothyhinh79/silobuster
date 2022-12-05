@@ -44,15 +44,6 @@ class URL_BulkSanitizer:
         return sanitized_url_json
 
     @classmethod
-    def combine_sanitized_urls(cls, sanitized_urls_json):
-        """Combines multiple URLs in sanitized_urls_json into single string separated by a comma"""
-        if not sanitized_urls_json['URLs']:
-            return sanitized_urls_json['raw_string']
-
-        clean_urls = [url['URL'] for url in sanitized_urls_json['URLs']]
-        return ', '.join(clean_urls)
-
-    @classmethod
     def construct_json(cls, sanitized_url_str, keys, key_vals):
         """Generates JSON with key values and sanitized value"""
         url_json = {InfoKind.url.value: sanitized_url_str}
@@ -72,7 +63,7 @@ class URL_BulkSanitizer:
     def get_row_w_sanitized_url(self, sanitized_url_json, key_vals, table_row_id_str):
         """Generates JSON with key values and sanitized URL from sanitized_url_json if sanitization resulted in a change"""
         raw_url = sanitized_url_json['raw_string']
-        sanitized_url_str = self.combine_sanitized_urls(sanitized_url_json)
+        sanitized_url_str = sanitized_url_json['sanitized_string']
 
         if sanitized_url_str != raw_url:
             log_sanitization_change(self.logger, raw_url, sanitized_url_str, table_row_id_str)

@@ -77,11 +77,20 @@ class URL_Logger:
 
         return None
 
-    # determine if we need to output a log record, based on whether all URLs found in the string are valid
-    def is_clean(self):
+    # categorize logs for reporting purposes
+    def log_status(self):
+
         all_urls_valid = all([URL_Logger._valid_status(url['URL_status']) for url in self.sanitized_url_json['URLs']])
-        url_string_valid = self.sanitized_url_json['condition'] == 'String is URL'
-        return all_urls_valid and url_string_valid
+        sanitization_change = self.sanitized_url_json['sanitized_string'] != self.sanitized_url_json['raw_string']
+        
+        status = []
+        status.append(self.sanitized_url_json['condition'])
+        if sanitization_change:
+            status.append('Sanitization change')
+        if not all_urls_valid:
+            status.append('Invalid URLs found')
+        
+        return ';'.join(status)
 
     # create prompts for each URL in a string
     def create_url_prompts(self):
@@ -102,6 +111,8 @@ class URL_Logger:
 
         if sanitized_string != raw_string:
             message += f"\nSanitized '{raw_string}' to '{sanitized_string}'"
+        else:
+            message += f"\nNo change to '{raw_string}'"
 
         if len(url_prompts) > 0:
             message += f"\nInvalid or bad URLs found. Please review."
@@ -127,6 +138,7 @@ class URL_Logger:
     def create_log_json(self):
 
         log_message = self.create_log_message()
+        log_status = self.log_status()
         key_vals_dict = {key_col:key_val for key_col, key_val in zip(self.src2dest.key, self.key_vals)}
         
         return {
@@ -136,29 +148,7 @@ class URL_Logger:
             "iteration_id": 1, # how do we get iteration number? would developer pass an iteration # somewhere?
             "step_name": "sanitize_url",
             "contributor_name": self.contributor, 
+            "status": log_status,
             "log_message": log_message
         }
         
-
-    # insert log JSON into logging table if necessary
-    def insert_log_record(self):
-        if self.is_clean(): return
-        log_json = [self.create_log_json()]
-
-        # insert log record into logging table in source or dest db
-        insert_query = f"""
-            INSERT INTO {self.src2dest.logging_table}
-            SELECT *
-            FROM json_populate_recordset(NULL::{self.src2dest.logging_table}, :log_json);
-        """
-
-        if self.src2dest.logging_db == 'source':
-            self.src2dest._open_source_conn()
-            self.src2dest.source_conn.execute(sqlalchemy.sql.text(insert_query), log_json = json.dumps(log_json))
-            self.src2dest._close_source_conn()
-        elif self.src2dest.logging_db == 'dest':
-            self.src2dest._open_dest_conn()
-            self.src2dest.dest_conn.execute(sqlalchemy.sql.text(insert_query), log_json = json.dumps(log_json))
-            self.src2dest._close_dest_conn()
-        else:
-            raise Exception('logging_db was not specified as "source" or "dest"')
