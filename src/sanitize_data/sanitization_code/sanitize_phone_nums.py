@@ -224,7 +224,8 @@ def crowd_disperser(plucked_phones, raw_phone_str):
 # need to write function that outputs the log message above as well as a json containing all the column names as keys and the rows as values
 
 
-def get_jsons_for_phone(phone_regex, raw_phone_str, logger, key_val, phone_with_letters_regex):
+def get_jsons_for_phone(phone_regex, raw_phone_str, logger, key_val, phone_with_letters_regex, source_table):
+
     sanitized_phone_numbers = cleaning_engine(phone_regex, raw_phone_str, logger)
 
     edge_case_log_msgs = []
@@ -282,8 +283,8 @@ def get_jsons_for_phone(phone_regex, raw_phone_str, logger, key_val, phone_with_
             log_message['description'] = edge_case_log_msgs
 
         json_log =  {
-                "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"{datetime.datetime.now().strftime('%m/%d/%Y %H:%M:%S')}")), 
-                "job_id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"{datetime.datetime.now().strftime('%m/%d/%Y %H:%M:%S')}")), # how do we get job_id? could be generated automatically in separate task run at beginning of DAG, and then it would be passed as an argument to command to run dockerized container?
+                "id": str(uuid.uuid3(uuid.NAMESPACE_DNS,f"sanitize_phone-{source_table}-{key_val}-{datetime.datetime.now().strftime('%m/%d/%Y %H:%M:%S')}")), 
+                "job_id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_phone-{datetime.datetime.now().strftime('%m/%d/%Y %H:%M:%S')}")), # how do we get job_id? could be generated automatically in separate task run at beginning of DAG, and then it would be passed as an argument to command to run dockerized container?
                 "job_timestamp": f"{datetime.datetime.now().strftime('%m/%d/%Y %H:%M:%S')}", 
                 "step_name": "sanitize_phone",
                 "log_message": log_message
