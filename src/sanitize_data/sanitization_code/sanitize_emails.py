@@ -24,10 +24,7 @@ def get_sanitized_emails_for_update(raw_emails, contributor_vals, key_vals, s2d,
     
     rows_w_sanitized_emails = []
     log_records = []
-    for key_vals_tuple, raw_email, contributor in zip(key_vals, raw_emails, contributor_vals):
-        
-        # for logging
-        table_row_id_str = f"{s2d.source_table}.{s2d.source_column} with key (" + ', '.join( [f'{col}={val}' for col, val, in zip(s2d.key, key_vals_tuple) ] ) 
+    for key_vals_tuple, raw_email, contributor in zip(key_vals, raw_emails, contributor_vals):        
 
         # sanitize email and log any errors or changes resulting from sanitization
         found_emails, sanitized_email = sanitize_email(raw_email, email_regex)
