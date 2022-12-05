@@ -82,7 +82,7 @@ class URL_Logger:
 
         all_urls_valid = all([URL_Logger._valid_status(url['URL_status']) for url in self.sanitized_url_json['URLs']])
         sanitization_change = self.sanitized_url_json['sanitized_string'] != self.sanitized_url_json['raw_string']
-        
+
         status = []
         status.append(self.sanitized_url_json['condition'])
         if sanitization_change:
@@ -142,7 +142,7 @@ class URL_Logger:
         key_vals_dict = {key_col:key_val for key_col, key_val in zip(self.src2dest.key, self.key_vals)}
         
         return {
-            "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_url-{self.src2dest.source_table}-{key_vals_dict}-{self.sanitized_url_json['timestamp']}")), 
+            "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_url-{self.src2dest.source_table}-{key_vals_dict}-{self.src2dest.job_timestamp}")), 
             "job_id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_url-{self.src2dest.job_timestamp}")), # how do we get job_id? could be generated automatically in separate task run at beginning of DAG, and then it would be passed as an argument to command to run dockerized container?
             "job_timestamp": self.src2dest.job_timestamp,
             "iteration_id": 1, # how do we get iteration number? would developer pass an iteration # somewhere?

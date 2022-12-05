@@ -49,6 +49,7 @@ def test_get_sanitized_emails_for_update():
          'iteration_id': 1, 
          'step_name': 'sanitize_email', 
          'contributor_name': 'whatcom', 
+         'status': 'Single email found;Sanitization change',
          'log_message': {'link_entity': 'data', 'link_id': '1', 'link_column': 'email', 'prompts': [{'description': "Sanitized '   thisisanemail@gmail.com ' to 'thisisanemail@gmail.com'"}]}
          }, 
          {'id': str(uuid.uuid3(uuid.NAMESPACE_DNS, "sanitize_email-data-{'id': '2'}-12/03/2022 00:00:00")), 
@@ -57,6 +58,7 @@ def test_get_sanitized_emails_for_update():
           'iteration_id': 1,
           'step_name': 'sanitize_email',
           'contributor_name': 'whatcom',
+          'status': 'Single email found',
           'log_message': {'link_entity': 'data', 'link_id': '2', 'link_column': 'email', 'prompts': []}
           }, 
           {'id': str(uuid.uuid3(uuid.NAMESPACE_DNS, "sanitize_email-data-{'id': '3'}-12/03/2022 00:00:00")), 
@@ -65,6 +67,8 @@ def test_get_sanitized_emails_for_update():
            'iteration_id': 1,
            'step_name': 'sanitize_email',
            'contributor_name': 'whatcom', 
+           'status': 'No emails found',
            'log_message': {'link_entity': 'data', 'link_id': '3', 'link_column': 'email', 'prompts': [{'description': "Unable to find email in text 'no email here'"}]}
            }]
+
 

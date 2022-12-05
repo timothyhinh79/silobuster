@@ -98,6 +98,25 @@ def log_sanitization_change(raw_email_str, sanitized_email_str, logger, table_ro
 
     return prompt
 
+# categorize logs for reporting purposes
+def generate_log_status(raw_email_str, sanitized_email_str, found_emails, prompts):
+    status = []
+
+    if not found_emails:
+        status.append('No emails found')
+    elif len(found_emails) == 1:
+        status.append('Single email found')
+    else:
+        status.append('Multiple emails found')
+
+    if any(['Invalid email address' in prompt['description'] for prompt in prompts]):
+        status.append('Invalid emails found')
+
+    if raw_email_str != sanitized_email_str:
+        status.append('Sanitization change')
+
+    return ';'.join(status)
+
 # generate log message JSON for log record, and also outputs msgs to console
 def generate_log_message(raw_email, found_emails, sanitized_email, key_vals_tuple, logger, s2d):
     table_row_id_str = f"{s2d.source_table}.{s2d.source_column} with key (" + ', '.join( [f'{col}={val}' for col, val, in zip(s2d.key, key_vals_tuple) ] ) 
@@ -116,6 +135,7 @@ def generate_log_message(raw_email, found_emails, sanitized_email, key_vals_tupl
 def generate_log_json(raw_email, found_emails, sanitized_email, key_vals_tuple, s2d, contributor, logger):
     log_message = generate_log_message(raw_email, found_emails, sanitized_email, key_vals_tuple, logger, s2d)
     key_vals_dict = {key_col:key_val for key_col, key_val in zip(s2d.key, key_vals_tuple)}
+    log_status = generate_log_status(raw_email, sanitized_email, found_emails, log_message['prompts'])
     return {
         "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_email-{s2d.source_table}-{key_vals_dict}-{s2d.job_timestamp}")), 
         "job_id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_email-{s2d.job_timestamp}")), 
@@ -123,6 +143,7 @@ def generate_log_json(raw_email, found_emails, sanitized_email, key_vals_tuple, 
         "iteration_id": 1,
         "step_name": "sanitize_email",
         "contributor_name": contributor, 
+        "status": log_status,
         "log_message": log_message
     }
 

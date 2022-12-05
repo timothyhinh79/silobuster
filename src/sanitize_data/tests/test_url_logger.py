@@ -168,7 +168,7 @@ def test_create_log_json():
     key_vals_dict = {key_col:key_val for key_col, key_val in zip(singlekey_src2dest.key, key_vals)}
 
     assert url_logger_unclean.create_log_json() == {
-            "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_url-{singlekey_src2dest.source_table}-{key_vals_dict}-{url_logger_unclean.sanitized_url_json['timestamp']}")), 
+            "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_url-{singlekey_src2dest.source_table}-{key_vals_dict}-{singlekey_src2dest.job_timestamp}")), 
             "job_id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_url-{singlekey_src2dest.job_timestamp}")), 
             "job_timestamp": singlekey_src2dest.job_timestamp,
             "iteration_id": 1, 
