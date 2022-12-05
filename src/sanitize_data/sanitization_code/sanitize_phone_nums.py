@@ -95,11 +95,7 @@ def pluck_phone_num(regex, raw_phone_str, logger):
             numbers = ' '.join([groups[0], groups[2], groups[4], groups[5]])
         number_list.append(numbers)
 
-    if len(number_list) > 1:
-        logger.debug(f"multiple phone numbers inside of entry")
-        
-
-    return number_list, log_messages
+    return number_list
 
 
 
@@ -228,10 +224,18 @@ def crowd_disperser(plucked_phones, raw_phone_str):
 # need to write function that outputs the log message above as well as a json containing all the column names as keys and the rows as values
 
 
-def get_jsons_for_phone(phone_regex, raw_phone_str, logger, key_val):
+def get_jsons_for_phone(phone_regex, raw_phone_str, logger, key_val, phone_with_letters_regex):
     sanitized_phone_numbers = cleaning_engine(phone_regex, raw_phone_str, logger)
+
+    edge_case_log_msgs = []
+
     if len(re.findall(phone_with_letters_regex, raw_phone_str)) >= 1:
-        logger.debug("entry contains phone number with letters")
+        edge_case_log_msgs.append("entry contains phone number with letters")
+    
+    if len(sanitized_phone_numbers) >=2:
+        edge_case_log_msgs.append("entry contains more than one phone number")
+
+
     # DB_CONNECTION = psycopg2.connect(dbname = 'defaultdb', user = 'postgres', password = 'postgres')
 
     # cursor = DB_CONNECTION.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
@@ -261,28 +265,31 @@ def get_jsons_for_phone(phone_regex, raw_phone_str, logger, key_val):
     for sanitized_phone_json in sanitized_phone_json_list:
 
         log_message = {
-            "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_phone-{sanitized_phone_json['timestamp']}")),
+            "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"{datetime.datetime.now().strftime('%m/%d/%Y %H:%M:%S')}")),
             "link_entity": "phone",
             "link_id": sanitized_phone_json["id"],
             "link_column": "phone",
-            "prompts": [
+            "prompts": 
             {
-                "description": raw_phone_str,
+                "description": "",
                 "suggested_value": sanitized_phone_json['phone']
             }
-            ]
+            
         }
+        if sanitized_phone_numbers != raw_phone_str:
+            log_message["description"] = f'successfully sanitized {raw_phone_str} to {sanitized_phone_numbers}'
+        if len(edge_case_log_msgs) >= 1:
+            log_message['description'] = edge_case_log_msgs
 
         json_log =  {
-                "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_phone-{sanitized_phone_json['timestamp']}")), 
-                "job_id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_phone-{sanitized_phone_json['timestamp']}")), # how do we get job_id? could be generated automatically in separate task run at beginning of DAG, and then it would be passed as an argument to command to run dockerized container?
-                "job_timestamp": sanitized_phone_json['timestamp'], 
+                "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"{datetime.datetime.now().strftime('%m/%d/%Y %H:%M:%S')}")), 
+                "job_id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"{datetime.datetime.now().strftime('%m/%d/%Y %H:%M:%S')}")), # how do we get job_id? could be generated automatically in separate task run at beginning of DAG, and then it would be passed as an argument to command to run dockerized container?
+                "job_timestamp": f"{datetime.datetime.now().strftime('%m/%d/%Y %H:%M:%S')}", 
                 "step_name": "sanitize_phone",
                 "log_message": log_message
             }
         json_log_list.append(json_log)
     
-    json['log_message']['description'] = 
     return json.dumps(sanitized_phone_json_list), json.dumps(json_log_list)
 
 
