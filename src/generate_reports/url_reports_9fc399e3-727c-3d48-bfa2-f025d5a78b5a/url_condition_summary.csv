@@ -1,0 +1,4 @@
+url_condition,num_records
+String contains no URLs,33
+String is invalid URL,202
+String is valid URL,1809

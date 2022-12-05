@@ -1,0 +1,7 @@
+full_url_status,num_records
+"Received 429/503 status, need to check URL again ",3
+generates no response,53
+returns a 404 status code,138
+returns a 410 status code,8
+No URL detected,33
+Valid status code,1809
