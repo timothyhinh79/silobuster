@@ -215,7 +215,6 @@ def test_update_src_data(db):
     singlekey_src2dest.update_src_data(sanitized_urls)
 
     updated_data = singlekey_src2dest.query_db(batch = args_test.batch_row_size, offset = 0)
-
     assert updated_data == [
         ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'whatcom','1'), 
         ('this string has no urls', 'whatcom','2'), 
@@ -406,4 +405,84 @@ def test_insert_log_records(db):
             'test2', 
             {'test2': 'test2'}
         )
+    ]
+
+def test_insert_semidupe_records(db):
+    sanitized_records = [
+        {
+            'id': 3,
+            'url': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program'
+        },
+        {
+            'id': 3,
+            'url': 'https://www.kidsinmotionclinic.org'
+        },
+        {
+            'id': 4,
+            'url': 'this part should be removed'
+        },
+        {
+            'id': 4,
+            'url': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program'
+        }
+    ]
+    singlekey_src2dest.create_dest_table()
+    singlekey_src2dest.insert_semidupe_records(sanitized_records)
+
+    singlekey_src2dest._open_dest_conn()
+    conn_exec = singlekey_src2dest.dest_conn.execute('SELECT * FROM data_dest')
+    
+    cols = conn_exec.keys()
+    results_json = [{col:val for col, val in zip(cols, vals_tuple)} for vals_tuple in conn_exec.fetchall()]
+    singlekey_src2dest._close_dest_conn()
+
+    assert results_json == [
+        {'id': '1', 'url': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'email': 'asdfadf@gmail.com', 'phone': '111 111 1111', 'contributor': 'whatcom'},
+        {'id':'2', 'url': 'this string has no urls', 'email': 'this string has no emails', 'phone': 'this string has no phone number', 'contributor': 'whatcom'},
+        {'id':'3-1', 'url': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'email':'qwerty@yahoo.com', 'phone': '222-222-2222', 'contributor':'whatcom'},
+        {'id':'3-2', 'url': 'https://www.kidsinmotionclinic.org', 'email':'qwerty@yahoo.com', 'phone': '222-222-2222', 'contributor':'whatcom'},
+        {'id':'4-1', 'url': 'this part should be removed', 'email':'asdfadf@gmail.com', 'phone': '111 111 1111', 'contributor':'whatcom'},
+        {'id':'4-2', 'url': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'email':'asdfadf@gmail.com', 'phone': '111 111 1111', 'contributor':'whatcom'}
+    ]
+
+def test_insert_semidupe_records_multikeys(db):
+    sanitized_records = [
+        {
+            'id': 3,
+            'email': 'qwerty@yahoo.com',
+            'url': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program'
+        },
+        {
+            'id': 3,
+            'email': 'qwerty@yahoo.com',
+            'url': 'https://www.kidsinmotionclinic.org'
+        },
+        {
+            'id': 4,
+            'email': 'asdfadf@gmail.com',
+            'url': 'this part should be removed'
+        },
+        {
+            'id': 4,
+            'email': 'asdfadf@gmail.com',
+            'url': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program'
+        }
+    ]
+    multikey_src2dest.create_dest_table()
+    multikey_src2dest.insert_semidupe_records(sanitized_records)
+
+    multikey_src2dest._open_dest_conn()
+    conn_exec = multikey_src2dest.dest_conn.execute('SELECT * FROM data_dest')
+
+    cols = conn_exec.keys()
+    results_json = [{col:val for col, val in zip(cols, vals_tuple)} for vals_tuple in conn_exec.fetchall()]
+    multikey_src2dest._close_dest_conn()
+
+    assert results_json == [
+        {'id': '1', 'url': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'email': 'asdfadf@gmail.com', 'phone': '111 111 1111', 'contributor': 'whatcom'},
+        {'id':'2', 'url': 'this string has no urls', 'email': 'this string has no emails', 'phone': 'this string has no phone number', 'contributor': 'whatcom'},
+        {'id':'3-1', 'url': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'email':'qwerty@yahoo.com-1', 'phone': '222-222-2222', 'contributor':'whatcom'},
+        {'id':'3-2', 'url': 'https://www.kidsinmotionclinic.org', 'email':'qwerty@yahoo.com-2', 'phone': '222-222-2222', 'contributor':'whatcom'},
+        {'id':'4-1', 'url': 'this part should be removed', 'email':'asdfadf@gmail.com-1', 'phone': '111 111 1111', 'contributor':'whatcom'},
+        {'id':'4-2', 'url': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'email':'asdfadf@gmail.com-2', 'phone': '111 111 1111', 'contributor':'whatcom'}
     ]

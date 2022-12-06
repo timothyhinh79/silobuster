@@ -32,25 +32,6 @@ def test_sanitize_single_url():
 
     assert remove_timestamp_from_json(sanitized_url_json) == {'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
 
-def test_combine_sanitized_urls():
-    urls = '''  https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program
-                https://www.kidsinmotionclinic.org
-                https://www.maxhigbee.org
-            '''  
-    sanitized_urls_json = {
-        'raw_string': urls,
-        'condition': 'String contains multiple URLs', 
-        'URLs': [
-            {'URL': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'root_URL': 'https://www.mtbaker.wednet.edu', 'URL_status': 404, 'root_URL_status': 200},
-            {'URL': 'https://www.kidsinmotionclinic.org', 'root_URL': 'https://www.kidsinmotionclinic.org', 'URL_status': 200, 'root_URL_status': 200},
-            {'URL': 'https://www.maxhigbee.org', 'root_URL': 'https://www.maxhigbee.org', 'URL_status': -1, 'root_URL_status': -1}
-        ] 
-    }
-
-    result = URL_BulkSanitizer.combine_sanitized_urls(sanitized_urls_json)
-
-    assert result == 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program, https://www.kidsinmotionclinic.org, https://www.maxhigbee.org'
-
 def test_construct_json():
     sanitized_url_str = 'https://www.kidsinmotionclinic.org'
     key = ['id']

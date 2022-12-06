@@ -65,14 +65,15 @@ def test_url_prompt():
                 'description': f"Neither full URL 'https://www.w3.org/Addressing/URL/url-spec.txtasdf' (returns a 400 status code) or root URL 'https://www.w3.org' (returns a 400 status code) are valid. Please double-check URL."
             }
 
-def test_is_clean():
-    sanitized_url_json_clean = {'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
+def test_log_status():
+    sanitized_url_json_clean = {'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'sanitized_string': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
     urls = '''  https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program
                 https://www.kidsinmotionclinic.org
                 https://www.maxhigbee.org
             '''  
     sanitized_url_json_unclean = {
         'raw_string': urls,
+        'sanitized_string': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program, https://www.kidsinmotionclinic.org, https://www.maxhigbee.org',
         'condition': 'String contains multiple URLs', 
         'URLs': [
             {'URL': 'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'root_URL': 'https://www.mtbaker.wednet.edu', 'URL_status': 404, 'root_URL_status': 200},
@@ -83,8 +84,8 @@ def test_is_clean():
 
     url_logger_clean = URL_Logger(sanitized_url_json_clean, singlekey_src2dest, key_vals, contributor='whatcom')
     url_logger_unclean = URL_Logger(sanitized_url_json_unclean, singlekey_src2dest, key_vals, contributor='whatcom')
-    assert url_logger_clean.is_clean() == True
-    assert url_logger_unclean.is_clean() == False
+    assert url_logger_clean.log_status() == 'String is URL'
+    assert url_logger_unclean.log_status() == 'String contains multiple URLs;Sanitization change;Invalid URLs found'
 
 def test_create_url_prompts():
     urls = '''  https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program
@@ -159,21 +160,20 @@ def test_create_log_message():
         }
 
 def test_create_log_json():
-    sanitized_url_json_unclean = {'timestamp': '11/14/2022 00:00:00', 'raw_string': 'removethispart: https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is not URL but contains one', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
+    sanitized_url_json_unclean = {'timestamp': '11/14/2022 00:00:00', 'raw_string': 'removethispart: https://www.w3.org/Addressing/URL/url-spec.txt', 'sanitized_string': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is not URL but contains one', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
     url_logger_unclean = URL_Logger(sanitized_url_json_unclean, singlekey_src2dest, key_vals, 'whatcom')
 
-    url_prompts = url_logger_unclean.create_url_prompts()
-    prompts = [{'description': url_logger_unclean.create_message(url_prompts), 'suggested_value': ''}] + url_prompts
     log_message = url_logger_unclean.create_log_message()
 
     key_vals_dict = {key_col:key_val for key_col, key_val in zip(singlekey_src2dest.key, key_vals)}
 
     assert url_logger_unclean.create_log_json() == {
-            "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_url-{singlekey_src2dest.source_table}-{key_vals_dict}-{url_logger_unclean.sanitized_url_json['timestamp']}")), 
+            "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_url-{singlekey_src2dest.source_table}-{key_vals_dict}-{singlekey_src2dest.job_timestamp}")), 
             "job_id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_url-{singlekey_src2dest.job_timestamp}")), 
             "job_timestamp": singlekey_src2dest.job_timestamp,
             "iteration_id": 1, 
             "step_name": "sanitize_url",
             "contributor_name": "whatcom", 
+            "status": "String is not URL but contains one;Sanitization change",
             "log_message": log_message
         }
