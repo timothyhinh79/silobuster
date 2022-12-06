@@ -1,7 +1,7 @@
 import logging
 import sys
 from sanitization_code.sanitize_phone_nums import *
-
+import datetime
 logging.basicConfig(
                     stream = sys.stdout, 
                     filemode = "w",
@@ -10,10 +10,12 @@ logging.basicConfig(
 
 logger = logging.getLogger()
 
-def test_sanitize_phone_num():
-    assert sanitize_phone_num('811 111 1111', phone_regex, logger) == '(811) 111 1111'
-    assert sanitize_phone_num('2222222222', phone_regex, logger) == '(222) 222 2222'
-    assert sanitize_phone_num('(333) 333 3333', phone_regex, logger) == '(333) 333 3333'
+def test_format_phone_numbers():
+    assert format_phone_numbers( phone_regex, '811 111 1111') == '811 111 1111'
+    assert format_phone_numbers(phone_regex, '2222222222') == '222 222 2222'
+    assert format_phone_numbers(phone_regex, '(333) 333 3333') == '333 333 3333'
+    assert format_phone_numbers(phone_regex, '1-800-787-3224 (TTY)') =='+1 800 787 3224' 
+    assert format_phone_numbers(phone_regex, '1-800-787-3224 (TTY) (360) 676-1521 (360) 676-6470 ext. 4432') == []
 
 def test_get_sanitized_phone_nums_for_update():
     phone_nums = ['811 111 1111', '2222222222', '(333) 333 3333']
@@ -28,6 +30,6 @@ def test_get_sanitized_phone_nums_for_update():
 
     # only the unclean phone numbers should be sanitized and included in sanitized_phone_nums_json
     assert sanitized_phone_nums_json == [
-        {'id': '1', 'phone': '(811) 111 1111'},
-        {'id': '2', 'phone': '(222) 222 2222'}
+        {'id': '2', 'phone': '222 222 2222'},
+        {'id': '3', 'phone': '333 333 3333'}
     ]
