@@ -16,7 +16,7 @@ import datetime
 phone_regex = "\s*(?:\+?(?P<country_code>1{1}))?([-. (]*(?P<area_code>\d{3})[-. )]*)?((?P<first_three>\d{3})[-. ]*(?:[-.x ]*(?P<last_four>\d+))?)\s*"
 phone_with_letters_regex = "\s*(?:\+?1{1})?[-. (]?\d{3}?[-. )](?:[A-Za-z]{3}[-. (][A-Za-z]{4})"
 
-def get_sanitized_phone_nums_for_update(raw_phone_nums, keys, key_vals, source_table, source_column, logger):
+def get_sanitized_phone_nums_for_update(raw_phone_nums, contributor_vals, keys, key_vals, s2d, logger):
     """Sanitizes the given raw_phone_nums, and returns a JSON with the given keys and sanitized phone numbers
        This JSON is used to generate the mapping table in Postgres for updating the raw phone numbers
        Also logs cases when no valid phone number is found in the raw string
@@ -35,20 +35,17 @@ def get_sanitized_phone_nums_for_update(raw_phone_nums, keys, key_vals, source_t
     """
     
     rows_w_sanitized_phone = []
-    for key_vals_tuple, raw_phone_num in zip(key_vals, raw_phone_nums):
-        # for logging
-        table_row_id_str = f"{source_table}.{source_column} with key (" + ', '.join( [f'{col}={val}' for col, val, in zip(keys, key_vals_tuple) ] ) 
+    log_records = []
+    for key_vals_tuple, raw_phone_num, contributor in zip(key_vals, raw_phone_nums, contributor_vals):
 
         # sanitize phone and log any errors or changes resulting from sanitization
-        sanitized_phone = cleaning_engine(phone_regex, raw_phone_num)
+        sanitized_phone, log_record = get_jsons_for_phone(phone_regex, raw_phone_num, logger, key_vals_tuple[0], phone_with_letters_regex, s2d, contributor) # assuming key_vals_tuple just has one value for ID field
+        log_records += log_record
 
-        # add row if sanitization changed raw URL string
-        
-        if sanitized_phone != raw_phone_num:
-            row_w_sanitized_phone = get_row_w_sanitized_phone(sanitized_phone, keys, key_vals_tuple)
-            rows_w_sanitized_phone.append(row_w_sanitized_phone)
+        if sanitized_phone and sanitized_phone[0]['phone'] != raw_phone_num:
+            rows_w_sanitized_phone += sanitized_phone
     
-    return rows_w_sanitized_phone
+    return rows_w_sanitized_phone, log_records
 
 # def sanitize_phone_num(raw_phone_num, regex, logger, table_row_id_str = ''):
 #     """sanitizes raw phone number to format "(XXX) XXX XXXX"
@@ -76,12 +73,13 @@ def get_sanitized_phone_nums_for_update(raw_phone_nums, keys, key_vals, source_t
 #Grabs the relevant parts of capture groups to produce a proper phone number
 def pluck_phone_num(regex, raw_phone_str, logger): 
 
-    if raw_phone_str:
-        sanitized_phones = re.findall(regex, raw_phone_str)
+    sanitized_phones = re.findall(regex, raw_phone_str)
+    if not sanitized_phones:
+        return []
     # if not sanitized_phones: return raw_phone_str
     # sanitized_phone_str = ', '.join(sanitized_phones) 
     numbers = []
-    if  sanitized_phones[0][0] == '':
+    if sanitized_phones[0][0] == '':
         numbers.extend([sanitized_phones[0][2], sanitized_phones[0][4], sanitized_phones[0][5]])
     else: numbers.extend([sanitized_phones[0][0], sanitized_phones[0][2], sanitized_phones[0][4], sanitized_phones[0][5]])
 #
@@ -224,8 +222,7 @@ def crowd_disperser(plucked_phones, raw_phone_str):
 # need to write function that outputs the log message above as well as a json containing all the column names as keys and the rows as values
 
 
-def get_jsons_for_phone(phone_regex, raw_phone_str, logger, key_val, phone_with_letters_regex, source_table):
-
+def get_jsons_for_phone(phone_regex, raw_phone_str, logger, key_val, phone_with_letters_regex, s2d, contributor):
     sanitized_phone_numbers = cleaning_engine(phone_regex, raw_phone_str, logger)
 
     edge_case_log_msgs = []
@@ -236,6 +233,8 @@ def get_jsons_for_phone(phone_regex, raw_phone_str, logger, key_val, phone_with_
     if len(sanitized_phone_numbers) >=2:
         edge_case_log_msgs.append("entry contains more than one phone number")
 
+    if len(sanitized_phone_numbers) == 0:
+        edge_case_log_msgs.append("entry contains no phone numbers")
 
     # DB_CONNECTION = psycopg2.connect(dbname = 'defaultdb', user = 'postgres', password = 'postgres')
 
@@ -266,10 +265,9 @@ def get_jsons_for_phone(phone_regex, raw_phone_str, logger, key_val, phone_with_
     for sanitized_phone_json in sanitized_phone_json_list:
 
         log_message = {
-            "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"{datetime.datetime.now().strftime('%m/%d/%Y %H:%M:%S')}")),
-            "link_entity": "phone",
+            "link_entity": s2d.source_table,
             "link_id": sanitized_phone_json["id"],
-            "link_column": "phone",
+            "link_column": s2d.source_column,
             "prompts": 
             {
                 "description": "",
@@ -277,21 +275,49 @@ def get_jsons_for_phone(phone_regex, raw_phone_str, logger, key_val, phone_with_
             }
             
         }
+        status_msgs = []
         if sanitized_phone_numbers != raw_phone_str:
             log_message["description"] = f'successfully sanitized {raw_phone_str} to {sanitized_phone_numbers}'
+            status_msgs.append('Sanitization change')
         if len(edge_case_log_msgs) >= 1:
             log_message['description'] = edge_case_log_msgs
+            status_msgs += edge_case_log_msgs
 
         json_log =  {
-                "id": str(uuid.uuid3(uuid.NAMESPACE_DNS,f"sanitize_phone-{source_table}-{key_val}-{datetime.datetime.now().strftime('%m/%d/%Y %H:%M:%S')}")), 
-                "job_id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_phone-{datetime.datetime.now().strftime('%m/%d/%Y %H:%M:%S')}")), # how do we get job_id? could be generated automatically in separate task run at beginning of DAG, and then it would be passed as an argument to command to run dockerized container?
-                "job_timestamp": f"{datetime.datetime.now().strftime('%m/%d/%Y %H:%M:%S')}", 
+                "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_phone-{s2d.source_table}-{key_val}-{s2d.job_timestamp}")), 
+                "job_id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_phone-{s2d.job_timestamp}")), # how do we get job_id? could be generated automatically in separate task run at beginning of DAG, and then it would be passed as an argument to command to run dockerized container?
+                "job_timestamp": s2d.job_timestamp, 
+                "iteration_id": 1,
                 "step_name": "sanitize_phone",
+                "contributor_name": contributor,
+                "status": ";".join(status_msgs),
                 "log_message": log_message
             }
         json_log_list.append(json_log)
+
+    if not json_log_list:
+        json_log_list.append({
+            "id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_phone-{s2d.source_table}-{key_val}-{s2d.job_timestamp}")), 
+            "job_id": str(uuid.uuid3(uuid.NAMESPACE_DNS, f"sanitize_phone-{s2d.job_timestamp}")), # how do we get job_id? could be generated automatically in separate task run at beginning of DAG, and then it would be passed as an argument to command to run dockerized container?
+            "job_timestamp": s2d.job_timestamp, 
+            "iteration_id": 1,
+            "step_name": "sanitize_phone",
+            "contributor_name": contributor,
+            "status": "No phone numbers found",
+            "log_message": {
+                "link_entity": s2d.source_table,
+                "link_id": key_val,
+                "link_column": s2d.source_column,
+                "prompts": 
+                {
+                    "description": "No phone numbers found. Please enter valid phone number",
+                }
+                
+            }
+        })
+
     
-    return json.dumps(sanitized_phone_json_list), json.dumps(json_log_list)
+    return sanitized_phone_json_list, json_log_list
 
 
     # for phone_number in sanitized_phone_numbers: 
