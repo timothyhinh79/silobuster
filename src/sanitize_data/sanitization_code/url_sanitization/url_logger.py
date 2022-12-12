@@ -29,25 +29,26 @@ class URL_Logger:
     def contributor(self):
         return self._contributor
     
-    # determine what status codes are valid
-    # NOTE: may want to classify 403s and 406s as valid
     @classmethod
     def _valid_status(cls, status_code):
+        """ Determines what status codes are valid """
+        # 403 (forbidden) and 406 (not acceptable) imply a valid URL
         if status_code == -1 or (status_code >= 400 and status_code not in (403,406)):
             return False
         return True
 
     @classmethod
     def _status_message(cls, status_code):
+        """ Generates log message based on URL status code for log records """
         if cls._valid_status(status_code): return ''
         if status_code == -1:
             return 'generates no response'
         else:
             return f'returns a {status_code} status code'
 
-    # construct prompt for log_message based on status code of a specific URL (and its root URL)
     @classmethod
     def _url_prompt(cls, url_status_json):
+        """ Constructs prompt for log_message based on status code of a specific URL (and its root URL) """
         full_URL = url_status_json['URL']
         root_URL = url_status_json['root_URL']
         full_URL_status = url_status_json['URL_status']
@@ -77,9 +78,8 @@ class URL_Logger:
 
         return None
 
-    # categorize logs for reporting purposes
     def log_status(self):
-
+        """ Categorizes logs for reporting purposes """
         all_urls_valid = all([URL_Logger._valid_status(url['URL_status']) for url in self.sanitized_url_json['URLs']])
         sanitization_change = self.sanitized_url_json['sanitized_string'] != self.sanitized_url_json['raw_string']
 
@@ -92,16 +92,16 @@ class URL_Logger:
         
         return ';'.join(status)
 
-    # create prompts for each URL in a string
     def create_url_prompts(self):
+        """ Creates prompts for each URL in a string """
         prompts = []
         for url_status_json in self.sanitized_url_json['URLs']:
             prompt =  URL_Logger._url_prompt(url_status_json)
             if prompt: prompts.append(prompt)
         return prompts
 
-    # create single message to summarize sanitization result
     def create_message(self, url_prompts):
+        """ Creates single message to summarize sanitization result """
         message = self.sanitized_url_json['condition']
         raw_string = self.sanitized_url_json['raw_string']
         if not self.sanitized_url_json['URLs']:
@@ -119,14 +119,13 @@ class URL_Logger:
 
         return message
 
-    # create log message identifying table, row, field, with prompts to suggest corrections for any errors
     def create_log_message(self):
+        """ Create log message identifying table, row, field, with prompts to suggest corrections for any errors """
         url_prompts = self.create_url_prompts()
         message = self.create_message(url_prompts)
         prompts = [{'description': message}] + url_prompts
 
         json = {
-            # "id": , # is there a need for id if there's only one log message per row in the log table?
             "link_entity": f"{self.src2dest.source_table}", 
             "link_id": self.key_vals[0], # assuming key_vals has only one value for the "id" field (primary key of the table)
             "link_column": self.src2dest.source_column,
@@ -134,9 +133,8 @@ class URL_Logger:
         }
         return json
 
-    # create a log JSON with IDs and the log_message if needed
     def create_log_json(self):
-
+        """ Create a log JSON with IDs and the log_message if needed """
         log_message = self.create_log_message()
         log_status = self.log_status()
         key_vals_dict = {key_col:key_val for key_col, key_val in zip(self.src2dest.key, self.key_vals)}
