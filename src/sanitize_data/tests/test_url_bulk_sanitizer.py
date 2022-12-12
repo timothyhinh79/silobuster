@@ -5,13 +5,6 @@ import logging
 import sys
 from classes.infokind import InfoKind
 
-singlekey_src2dest = Src2Dest(kind = 'url', key = ['id'], 
-    source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
-    dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
-    logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
-    job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
-)
-
 logging.basicConfig(
                 stream = sys.stdout, 
                 filemode = "w",
@@ -30,7 +23,7 @@ def test_sanitize_single_url():
 
     sanitized_url_json = URL_BulkSanitizer.sanitize_single_url(test_string)
 
-    assert remove_timestamp_from_json(sanitized_url_json) == {'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
+    assert remove_timestamp_from_json(sanitized_url_json) == {'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'sanitized_string': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
 
 def test_construct_json():
     sanitized_url_str = 'https://www.kidsinmotionclinic.org'
@@ -41,6 +34,12 @@ def test_construct_json():
     assert combined_json == {'id': 1, InfoKind.url.value: sanitized_url_str}
 
 def test_get_sanitized_url_jsons():
+    singlekey_src2dest = Src2Dest(kind = 'url', key = ['id'], 
+        source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+        dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+        logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+        job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    )
     urls = ['https://www.w3.org/Addressing/URL/url-spec.txt'
             ,'https://www.w3.org/Addressing/URL/url-spec.txtasdf' # additional characters that invalidate full URL match
             ,'URL Specification https://www.w3.org/Addressing/URL/url-spec.txt' # extra characters outside of URL
@@ -58,15 +57,20 @@ def test_get_sanitized_url_jsons():
     results = sanitizer.get_sanitized_url_jsons()
 
     results_wo_timestamps = [remove_timestamp_from_json(json) for json in results]
-    
     assert results_wo_timestamps == [
-      {'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
-    , {'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'root_URL': 'https://www.w3.org', 'URL_status': 300, 'root_URL_status': 200}]}
-    , {'raw_string': 'URL Specification https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is not URL but contains one', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
-    , {'raw_string': 'URL Specification https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'condition': 'String is not URL but contains one', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'root_URL': 'https://www.w3.org', 'URL_status': 300, 'root_URL_status': 200}]}
+      {'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'sanitized_string': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
+    , {'raw_string': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'sanitized_string': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'condition': 'String is URL', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'root_URL': 'https://www.w3.org', 'URL_status': 300, 'root_URL_status': 200}]}
+    , {'raw_string': 'URL Specification https://www.w3.org/Addressing/URL/url-spec.txt', 'sanitized_string': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'condition': 'String is not URL but contains one', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txt', 'root_URL': 'https://www.w3.org', 'URL_status': 200, 'root_URL_status': 200}]}
+    , {'raw_string': 'URL Specification https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'sanitized_string': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'condition': 'String is not URL but contains one', 'URLs': [{'URL': 'https://www.w3.org/Addressing/URL/url-spec.txtasdf', 'root_URL': 'https://www.w3.org', 'URL_status': 300, 'root_URL_status': 200}]}
     ]
 
 def test_get_jsons_for_update():
+    singlekey_src2dest = Src2Dest(kind = 'url', key = ['id'], 
+        source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+        dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+        logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+        job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    )
     urls = ['https://www.w3.org/Addressing/URL/url-spec.txt'
             ,'https://www.w3.org/Addressing/URL/url-spec.txtasdf'
             ,'URL Specification https://www.w3.org/Addressing/URL/url-spec.txt' # extra characters outside of URL
@@ -96,4 +100,4 @@ def test_get_jsons_for_update():
         }
     ]
 
-    assert [log['log_message']['link_id'] for log in logs] == [3,4,5]
+    assert [log['log_message']['link_id'] for log in logs] == [1,2,3,4,5]

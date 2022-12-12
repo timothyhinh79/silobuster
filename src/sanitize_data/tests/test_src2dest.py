@@ -15,42 +15,12 @@ logging.basicConfig(
 
 logger = logging.getLogger()
 
-singlekey_src2dest = Src2Dest(kind = 'url', key = ['id'], 
-    source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
-    dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
-    logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
-    job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
-)
-multikey_src2dest = Src2Dest(kind = 'url', key = ['id', 'email'], 
-    source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
-    dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
-    logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
-    job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")    
-)
-
-args_test = SimpleNamespace(
-    source_db='postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source', 
-    dest_db='postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest', 
-    source_dest_mapping=[singlekey_src2dest],
-    batch_row_size=10000, 
-    max_rows_to_fetch=1000000, 
-    write=False
-)
-
-# for testing tables with multiple keys
-args_test_mult_keys = SimpleNamespace(
-    source_db='postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source', 
-    dest_db='postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest', 
-    source_dest_mapping=[multikey_src2dest],
-    batch_row_size=10000, 
-    max_rows_to_fetch=1000000, 
-    write=False
-)
-
 @pytest.fixture()
 def db():
+    source_db_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source'
+    dest_db_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest'
     
-    src_db = sqlalchemy.create_engine(args_test.source_db)
+    src_db = sqlalchemy.create_engine(source_db_conn_str)
     src_conn = src_db.connect()
 
     # construct mock data table
@@ -87,7 +57,7 @@ def db():
 
     src_conn.execute(sql_str)
 
-    dest_db = sqlalchemy.create_engine(args_test.dest_db)
+    dest_db = sqlalchemy.create_engine(dest_db_conn_str)
     dest_conn = dest_db.connect()
 
     dest_conn.execute("""
@@ -108,11 +78,13 @@ def db():
     # closing database
     src_conn.close()
     src_db.dispose()
+    dest_conn.close()
+    dest_db.dispose()
 
     yield # yield to test
 
     # tear down any mock data tables
-    src_db = sqlalchemy.create_engine(args_test.source_db)
+    src_db = sqlalchemy.create_engine(source_db_conn_str)
     src_conn = src_db.connect()
     src_conn.execute("""
         DROP TABLE IF EXISTS data;
@@ -122,7 +94,7 @@ def db():
     src_conn.close()
     src_db.dispose()
 
-    dest_db = sqlalchemy.create_engine(args_test.dest_db)
+    dest_db = sqlalchemy.create_engine(dest_db_conn_str)
     dest_conn = dest_db.connect()
     dest_conn.execute("""
         DROP TABLE IF EXISTS data_dest;
@@ -133,13 +105,30 @@ def db():
     dest_db.dispose()
 
 def test_get_key_sorting_statement():
+    singlekey_src2dest = Src2Dest(kind = 'url', key = ['id'], 
+        source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+        dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+        logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+        job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    )
+    multikey_src2dest = Src2Dest(kind = 'url', key = ['id', 'email'], 
+        source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+        dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+        logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+        job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")    
+    )
 
     assert singlekey_src2dest.get_key_sorting_statement() == 'order by id'
     assert multikey_src2dest.get_key_sorting_statement() == 'order by id, email'
 
 def test_query_db(db):
-
-    results = singlekey_src2dest.query_db(batch = args_test.batch_row_size, offset = 0)
+    singlekey_src2dest = Src2Dest(kind = 'url', key = ['id'], 
+        source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+        dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+        logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+        job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    )
+    results = singlekey_src2dest.query_db(batch = 10000, offset = 0)
 
     assert results == [
         ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'whatcom','1'), 
@@ -149,9 +138,13 @@ def test_query_db(db):
     ]
 
 def test_query_db_w_mult_keys(db):
-    # email is being used as second key in addition to id in args_test_mult_keys
-
-    results = multikey_src2dest.query_db(batch = args_test_mult_keys.batch_row_size, offset = 0)
+    multikey_src2dest = Src2Dest(kind = 'url', key = ['id', 'email'], 
+        source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+        dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+        logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+        job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")    
+    )
+    results = multikey_src2dest.query_db(batch = 10000, offset = 0)
 
     assert results == [
         ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'whatcom','1', 'asdfadf@gmail.com'), 
@@ -161,7 +154,12 @@ def test_query_db_w_mult_keys(db):
     ]
 
 def test_generate_mapping_tbl():
-
+    singlekey_src2dest = Src2Dest(kind = 'url', key = ['id'], 
+        source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+        dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+        logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+        job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    )
     mapping_tbl_sql = singlekey_src2dest.generate_mapping_tbl()
 
     assert mapping_tbl_sql == f"""
@@ -178,7 +176,12 @@ def test_generate_mapping_tbl():
         """
 
 def test_generate_mapping_tbl_w_mult_keys():
-
+    multikey_src2dest = Src2Dest(kind = 'url', key = ['id', 'email'], 
+        source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+        dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+        logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+        job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")    
+    )
     mapping_tbl_sql = multikey_src2dest.generate_mapping_tbl()
 
     assert mapping_tbl_sql == f"""
@@ -195,7 +198,12 @@ def test_generate_mapping_tbl_w_mult_keys():
         """
 
 def test_update_src_data(db):
-
+    singlekey_src2dest = Src2Dest(kind = 'url', key = ['id'], 
+        source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+        dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+        logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+        job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    )
     key_vals = [('1',),('2',),('3',),('4',)]
     raw_urls = [
         'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program',
@@ -214,7 +222,7 @@ def test_update_src_data(db):
 
     singlekey_src2dest.update_src_data(sanitized_urls)
 
-    updated_data = singlekey_src2dest.query_db(batch = args_test.batch_row_size, offset = 0)
+    updated_data = singlekey_src2dest.query_db(batch = 10000, offset = 0)
     assert updated_data == [
         ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'whatcom','1'), 
         ('this string has no urls', 'whatcom','2'), 
@@ -223,6 +231,12 @@ def test_update_src_data(db):
     ]
 
 def test_update_src_data_w_mult_keys(db):
+    multikey_src2dest = Src2Dest(kind = 'url', key = ['id', 'email'], 
+        source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+        dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+        logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+        job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")    
+    )
     key_vals = [('1', 'asdfadf@gmail.com'), ('2', 'this string has no emails'), ('3', 'qwerty@yahoo.com'), ('4','asdfadf@gmail.com') ]
     raw_urls = [
         'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program',
@@ -241,7 +255,7 @@ def test_update_src_data_w_mult_keys(db):
 
     multikey_src2dest.update_src_data(sanitized_urls)
 
-    updated_data = multikey_src2dest.query_db(batch = args_test_mult_keys.batch_row_size, offset = 0)
+    updated_data = multikey_src2dest.query_db(batch = 10000, offset = 0)
 
     assert updated_data == [
         ('https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program', 'whatcom','1', 'asdfadf@gmail.com'), 
@@ -252,26 +266,41 @@ def test_update_src_data_w_mult_keys(db):
 
 
 def test_get_source_cols_str_wo_suffix(db):
-
+    singlekey_src2dest = Src2Dest(kind = 'url', key = ['id'], 
+        source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+        dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+        logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+        job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    )
     source_cols_str = singlekey_src2dest.get_source_cols_str()
 
     assert source_cols_str == 'data.id,data.email,data.phone,data.contributor'
 
 def test_get_source_cols_str_w_suffix(db):
-
+    singlekey_src2dest = Src2Dest(kind = 'url', key = ['id'], 
+        source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+        dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+        logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+        job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    )
     source_cols_str = singlekey_src2dest.get_source_cols_str(table_suffix='_src')
 
     assert source_cols_str == 'data_src.id,data_src.email,data_src.phone,data_src.contributor'
 
 def test_create_dest_table(db):
-
+    singlekey_src2dest = Src2Dest(kind = 'url', key = ['id'], 
+        source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+        dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+        logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+        job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    )
     singlekey_src2dest.create_dest_table()
 
     singlekey_src2dest._open_dest_conn()
     dest_cols = singlekey_src2dest.dest_conn.execute(f"""
         SELECT column_name
             FROM information_schema.columns
-            WHERE table_name = '{args_test.source_dest_mapping[0].dest_table}'
+            WHERE table_name = '{singlekey_src2dest.dest_table}'
             ORDER BY ordinal_position;
     """).fetchall()
 
@@ -292,6 +321,12 @@ def test_create_dest_table(db):
     ]
 
 def test_update_dest_data(db):
+    singlekey_src2dest = Src2Dest(kind = 'url', key = ['id'], 
+        source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+        dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+        logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+        job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    )
     key_vals = [('1',),('2',),('3',),('4',)]
     raw_urls = [
         'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program',
@@ -323,6 +358,12 @@ def test_update_dest_data(db):
     ]
 
 def test_update_dest_data_w_mult_keys(db):
+    multikey_src2dest = Src2Dest(kind = 'url', key = ['id', 'email'], 
+        source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+        dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+        logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+        job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")    
+    )
     key_vals = [('1', 'asdfadf@gmail.com'), ('2', 'this string has no emails'), ('3', 'qwerty@yahoo.com'), ('4','asdfadf@gmail.com') ]
     raw_urls = [
         'https://www.mtbaker.wednet.edu/o/erc/page/play-and-learn-program',
@@ -354,6 +395,12 @@ def test_update_dest_data_w_mult_keys(db):
     ]
 
 def test_insert_log_records(db):
+    singlekey_src2dest = Src2Dest(kind = 'url', key = ['id'], 
+        source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+        dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+        logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+        job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    )
     curr_time = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
     log_json = [
         {
@@ -408,6 +455,12 @@ def test_insert_log_records(db):
     ]
 
 def test_insert_semidupe_records(db):
+    singlekey_src2dest = Src2Dest(kind = 'url', key = ['id'], 
+        source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+        dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+        logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+        job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    )
     sanitized_records = [
         {
             'id': 3,
@@ -446,6 +499,12 @@ def test_insert_semidupe_records(db):
     ]
 
 def test_insert_semidupe_records_multikeys(db):
+    multikey_src2dest = Src2Dest(kind = 'url', key = ['id', 'email'], 
+        source_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_source',
+        dest_conn_str = 'postgresql+psycopg2://postgres:postgres@localhost:5432/silobuster_testing_dest',
+        logging_db = 'dest', logging_table="logs", source_table = 'data', source_column='url', dest_table='data_dest', dest_column='url',
+        job_timestamp=datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")    
+    )
     sanitized_records = [
         {
             'id': 3,
