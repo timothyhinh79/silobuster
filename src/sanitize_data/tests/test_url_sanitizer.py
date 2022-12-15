@@ -24,7 +24,7 @@ singlekey_src2dest = Src2Dest(kind = 'url', key = ['id'],
 )
 
 # Potential Issue to investigate:
-# interestingly, http://nonsenseurlthatdoesntexistz.com/ still returns a 200 status code...
+# interestingly, http://nonsenseurlthatdoesntexistz.com/ still returns a 200 status code for requests.get()...
 # but if the scheme is https instead of http, it expectedly errors out
 
 # for testing, not practical to test if timestamp value is equal to a hard-coded value
@@ -79,11 +79,19 @@ def test_assign_string_condition():
 
 def test_sanitize_url_with_no_urls():
     test_string = ''
+    test_string_2 = 'random text'
 
     sanitizer = URL_Sanitizer(test_string)
     sanitized_url_json = sanitizer.sanitize_url()
+    sanitizer_2 = URL_Sanitizer(test_string_2)
+    sanitized_url_json_2 = sanitizer_2.sanitize_url()
+
+    # sanitized_string should be same as raw_string if no URLs are found
     assert 'timestamp' in sanitized_url_json
     assert remove_timestamp_from_json(sanitized_url_json) == {'raw_string': '', 'sanitized_string': '', 'condition': 'String contains no URLs', 'URLs': []}
+
+    assert 'timestamp' in sanitized_url_json_2
+    assert remove_timestamp_from_json(sanitized_url_json_2) == {'raw_string': 'random text', 'sanitized_string': 'random text', 'condition': 'String contains no URLs', 'URLs': []}
 
 def test_sanitize_url_with_only_one_url():
     test_string_1 = 'https://www.w3.org/Addressing/URL/url-spec.txt'
