@@ -1,5 +1,4 @@
 from subprocess import PIPE,Popen
-# from sanitization_code.pg_transfer import dump_table, restore_table
 import json
 import sqlalchemy
 from classes.infokind import InfoKind
